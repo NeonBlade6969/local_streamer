@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LocalStream</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#06070b;--panel:#0d0f15;--panel2:#11141c;--border:rgba(255,255,255,.075);--text:#f5f6fa;--muted:#858c9d;--accent:#675cff;--accent2:#9a63ff}
+html{scroll-behavior:smooth}
+body{margin:0;background:radial-gradient(circle at 10% 0%,rgba(103,92,255,.12),transparent 30%),radial-gradient(circle at 100% 100%,rgba(154,99,255,.08),transparent 30%),var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;overflow-x:hidden}
+button,input,select{font:inherit}
+button{cursor:pointer}
+button:active{transform:scale(.97)}
+::-webkit-scrollbar{width:7px}
+::-webkit-scrollbar-track{background:#07080c}
+::-webkit-scrollbar-thumb{background:#292d38;border-radius:20px}
+
+.nav{position:sticky;top:0;z-index:1000;height:70px;display:flex;align-items:center;padding:0 30px;background:rgba(6,7,11,.84);backdrop-filter:blur(25px);border-bottom:1px solid var(--border)}
+.logo{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:900;letter-spacing:-.5px}
+.logoIcon{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 10px 30px rgba(103,92,255,.3)}
+.navLinks{display:flex;gap:3px;margin-left:32px}
+.navButton{position:relative;border:0;padding:10px 13px;border-radius:9px;background:transparent;color:#737b8d;font-size:12px;font-weight:750;transition:.2s}
+.navButton:hover{background:rgba(255,255,255,.045);color:white}
+.navButton.active{background:rgba(103,92,255,.14);color:white}
+.navButton.active:after{content:"";position:absolute;bottom:3px;left:50%;width:18px;height:2px;transform:translateX(-50%);border-radius:5px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.navRight{margin-left:auto;display:flex;align-items:center;gap:10px}
+.miniSearch{width:215px;height:38px;display:flex;align-items:center;padding:0 11px;border:1px solid var(--border);border-radius:10px;background:#10121a}
+.miniSearch:focus-within{border-color:rgba(103,92,255,.65);box-shadow:0 0 0 3px rgba(103,92,255,.1)}
+.miniSearch span{color:#71798a;margin-right:8px}
+.miniSearch input{width:100%;border:0;outline:0;background:transparent;color:white;font-size:11px}
+.avatar{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,#252936,#14161d);font-size:11px;font-weight:850}
+
+.app{width:min(1280px,calc(100% - 48px));margin:auto;padding-bottom:100px}
+.page{display:none;padding-top:26px}
+.page.active{display:block;animation:pageIn .3s cubic-bezier(.2,.8,.2,1)}
+@keyframes pageIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+.hero{position:relative;height:500px;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:#0d0f15}
+.heroImage{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 1.2s}
+.hero:hover .heroImage{transform:scale(1.025)}
+.heroShade{position:absolute;inset:0;background:linear-gradient(90deg,#08090d 0%,rgba(8,9,13,.93) 24%,rgba(8,9,13,.55) 57%,rgba(8,9,13,.08)),linear-gradient(0deg,#08090d,transparent 52%)}
+.heroContent{position:absolute;left:52px;top:82px;z-index:2;width:min(570px,70%)}
+.heroBadge{display:inline-flex;padding:7px 11px;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(255,255,255,.045);color:#b9bfcd;font-size:9px;font-weight:850;letter-spacing:.7px}
+.heroTitle{margin-top:17px;font-size:clamp(40px,5vw,66px);font-weight:950;line-height:.96;letter-spacing:-3px}
+.heroDescription{margin-top:15px;color:#9da5b6;font-size:13px;line-height:1.75;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.heroMeta{display:flex;gap:12px;margin-top:16px;font-size:11px;color:#8a92a4}
+.rating{color:#e2bd59}
+.heroButtons{display:flex;gap:9px;margin-top:24px}
+
+.primary{border:0;padding:12px 20px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-size:12px;font-weight:800;box-shadow:0 10px 28px rgba(103,92,255,.22)}
+.primary:hover{filter:brightness(1.1);transform:translateY(-2px)}
+.secondary{border:1px solid rgba(255,255,255,.1);padding:12px 18px;border-radius:10px;background:rgba(255,255,255,.055);color:white;font-size:12px;font-weight:750}
+.secondary:hover{background:rgba(255,255,255,.09);transform:translateY(-2px)}
+
+.section{margin-top:40px}
+.sectionHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sectionHeader h2{margin:0;font-size:17px;font-weight:850;letter-spacing:-.4px}
+.sectionHeader button{border:0;background:transparent;color:#747c8e;font-size:10px;font-weight:700}
+
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:15px}
+.grid.anim-next{animation:gridPageNext .35s cubic-bezier(.2,.8,.2,1)}
+.grid.anim-prev{animation:gridPagePrev .35s cubic-bezier(.2,.8,.2,1)}
+.grid.anim-fade{animation:gridFadeIn .3s ease-out}
+
+@keyframes gridPageNext{
+from{opacity:0;transform:translateX(35px) scale(.98)}
+to{opacity:1;transform:translateX(0) scale(1)}
+}
+@keyframes gridPagePrev{
+from{opacity:0;transform:translateX(-35px) scale(.98)}
+to{opacity:1;transform:translateX(0) scale(1)}
+}
+@keyframes gridFadeIn{
+from{opacity:0;transform:translateY(15px)}
+to{opacity:1;transform:translateY(0)}
+}
+
+.card{position:relative;min-width:0;overflow:hidden;border:1px solid var(--border);border-radius:13px;background:linear-gradient(180deg,#11141c,#0d0f15);cursor:pointer;transition:.25s}
+.card:hover{transform:translateY(-7px) scale(1.012);border-color:rgba(255,255,255,.16);box-shadow:0 18px 42px rgba(0,0,0,.38)}
+.poster{display:block;width:100%;aspect-ratio:2/3;object-fit:cover;background:#181b24;transition:.35s}
+.card:hover .poster{transform:scale(1.035);filter:brightness(1.06)}
+.cardInfo{padding:10px}
+.cardTitle{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px;font-weight:750}
+.cardMeta{display:flex;gap:8px;margin-top:7px;font-size:9px;color:#727a8c}
+.cardOverlay{position:absolute;left:0;right:0;bottom:42px;padding:30px 10px 10px;background:linear-gradient(transparent,rgba(0,0,0,.88));opacity:0;transition:.2s}
+.card:hover .cardOverlay{opacity:1}
+.quickPlay{width:34px;height:34px;border:0;border-radius:50%;background:white;color:#101116;font-size:12px;font-weight:900}
+.empty{grid-column:1/-1;padding:55px 20px;text-align:center;border:1px dashed rgba(255,255,255,.09);border-radius:14px;color:#656d7e;font-size:12px}
+
+.pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:35px;padding:15px 0}
+.pageBtn{border:1px solid var(--border);border-radius:9px;min-width:38px;height:38px;padding:0 10px;background:#10131a;color:#858c9d;font-size:12px;font-weight:750;transition:.2s;display:inline-flex;align-items:center;justify-content:center}
+.pageBtn:hover:not(:disabled){background:#181b24;color:white;border-color:rgba(255,255,255,.2);transform:translateY(-2px)}
+.pageBtn.active{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;color:white;box-shadow:0 6px 18px rgba(103,92,255,.35)}
+.pageBtn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.pageDots{color:#525866;font-size:12px;padding:0 4px}
+
+.pageTitle{font-size:31px;font-weight:950;letter-spacing:-1.5px}
+.pageSubtitle{margin-top:7px;color:#737b8d;font-size:12px;margin-bottom:20px}
+
+.filters{margin-bottom:28px;padding:16px;border:1px solid var(--border);border-radius:15px;background:linear-gradient(180deg,#11141c,#0d0f15)}
+.filterHeader{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.filterHeader strong{font-size:13px}
+.clearFilters{border:1px solid var(--border);border-radius:8px;padding:7px 11px;background:#151821;color:#858c9d;font-size:10px;font-weight:750}
+.filterRow{display:flex;align-items:center;gap:7px;overflow-x:auto;padding:5px 0;scrollbar-width:none}
+.filterRow::-webkit-scrollbar{display:none}
+.filterLabel{flex:0 0 72px;color:#656d7e;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.7px}
+.filterChip{flex:0 0 auto;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:8px 11px;background:#10131a;color:#858c9d;font-size:10px;font-weight:750;transition:.18s}
+.filterChip:hover{background:#181b24;color:white}
+.filterChip.active{background:rgba(103,92,255,.16);border-color:rgba(103,92,255,.65);color:white}
+.filterStatus{margin-top:11px;color:#656d7e;font-size:10px}
+
+.searchBox{height:53px;display:flex;align-items:center;padding:0 15px;margin-bottom:27px;border:1px solid var(--border);border-radius:12px;background:#10121a}
+.searchBox span{color:#70788a;margin-right:10px}
+.searchBox input{width:100%;border:0;outline:0;background:transparent;color:white;font-size:13px}
+
+.details{display:none}
+.details.active{display:block;animation:detailsIn .38s cubic-bezier(.2,.8,.2,1)}
+@keyframes detailsIn{from{opacity:0;transform:translateY(20px) scale(.99)}to{opacity:1;transform:none}}
+.backButton{margin-top:26px;margin-bottom:17px;border:1px solid var(--border);padding:9px 14px;border-radius:9px;background:#11141c;color:white;font-size:11px;font-weight:750}
+.detailHero{position:relative;min-height:470px;overflow:hidden;border:1px solid var(--border);border-radius:20px;background:#0d0f15}
+.detailBackdrop{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.32}
+.detailShade{position:absolute;inset:0;background:linear-gradient(90deg,#0d0f15 5%,rgba(13,15,21,.91) 45%,rgba(13,15,21,.18))}
+.detailContent{position:relative;z-index:2;padding:55px;max-width:920px}
+.detailPoster{float:left;width:175px;height:263px;object-fit:cover;border-radius:12px;margin:0 30px 20px 0;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.detailTitle{padding-top:10px;font-size:40px;line-height:1;font-weight:950;letter-spacing:-2px}
+.detailMeta{margin-top:15px;font-size:11px;color:#8d95a6}
+.detailOverview{margin-top:15px;color:#a1a9ba;font-size:13px;line-height:1.75}
+.detailButtons{display:flex;gap:9px;margin-top:22px}
+.clear{clear:both}
+
+.seasons{margin-top:32px}
+.seasonSelect{min-width:235px;padding:11px 13px;border:1px solid var(--border);border-radius:10px;background:#11141c;color:white;outline:0;font-size:12px}
+.episodes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.episode{display:flex;gap:12px;padding:10px;border:1px solid var(--border);border-radius:11px;background:#10131a;cursor:pointer;transition:.2s}
+.episode:hover{transform:translateY(-3px);border-color:rgba(103,92,255,.55);background:#141720}
+.episodeImage{width:105px;height:60px;flex-shrink:0;object-fit:cover;border-radius:7px;background:#20232d}
+.episodeName{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px;font-weight:750}
+.episodeMeta{margin-top:6px;font-size:9px;color:#70788a}
+
+.player{position:fixed;inset:0;z-index:5000;display:none;background:#000;opacity:0}
+.player.active{display:block;animation:playerFade .25s forwards}
+@keyframes playerFade{to{opacity:1}}
+.playerBar{position:absolute;left:0;right:0;top:0;height:62px;z-index:3;display:flex;align-items:center;padding:0 15px;background:rgba(6,7,11,.94);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06)}
+.playerTitle{margin-left:13px;color:#8b93a5;font-size:11px}
+.playerFullscreen{margin-left:auto;border:1px solid var(--border);border-radius:9px;padding:8px 12px;background:#171a22;color:white;font-size:11px}
+.playerFrame{position:absolute;left:0;top:62px;width:100%;height:calc(100% - 62px);border:0;background:#000}
+
+.toast{position:fixed;right:24px;bottom:24px;z-index:8000;padding:12px 16px;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(20,22,30,.96);box-shadow:0 15px 45px rgba(0,0,0,.4);font-size:11px;font-weight:750;transform:translateY(20px);opacity:0;pointer-events:none;transition:.25s}
+.toast.show{opacity:1;transform:none}
+
+@media(max-width:1100px){.grid{grid-template-columns:repeat(5,1fr)}}
+@media(max-width:850px){.nav{padding:0 15px}.navLinks{display:none}.miniSearch{display:none}.app{width:calc(100% - 24px)}.grid{grid-template-columns:repeat(4,1fr)}.episodes{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.hero{height:520px}.heroContent{left:25px;top:60px;width:calc(100% - 50px)}.heroTitle{font-size:42px}.grid{grid-template-columns:repeat(2,1fr);gap:10px}.detailContent{padding:25px}.detailPoster{width:120px;height:180px;margin-right:18px}.detailTitle{font-size:29px}.episodes{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+<div class="logo"><div class="logoIcon">▶</div>LocalStream</div>
+<div class="navLinks">
+<button class="navButton active" data-page="home">Home</button>
+<button class="navButton" data-page="movies">Movies</button>
+<button class="navButton" data-page="tv">TV Shows</button>
+<button class="navButton" data-page="mylist">My List</button>
+<button class="navButton" data-page="search">Search</button>
+</div>
+<div class="navRight">
+<div class="miniSearch"><span>⌕</span><input id="miniSearch" placeholder="Search..."></div>
+<div class="avatar">LS</div>
+</div>
+</nav>
+
+<main class="app">
+
+<section id="page-home" class="page active">
+<div class="hero">
+<img id="heroImage" class="heroImage">
+<div class="heroShade"></div>
+<div class="heroContent">
+<div class="heroBadge">🔥 FEATURED FOR YOU</div>
+<div id="heroTitle" class="heroTitle">Loading...</div>
+<div id="heroDescription" class="heroDescription">Finding something good...</div>
+<div class="heroMeta"><span id="heroYear">—</span><span>•</span><span id="heroRating" class="rating">★ —</span><span>•</span><span id="heroType">Movie</span></div>
+<div class="heroButtons">
+<button id="heroPlay" class="primary">▶ Play Now</button>
+<button id="heroList" class="secondary">＋ My List</button>
+</div>
+</div>
+</div>
+
+<section class="section"><div class="sectionHeader"><h2>▶ Continue Watching</h2><button onclick="navigate('mylist')">View all →</button></div><div id="continueGrid" class="grid"></div></section>
+<section class="section"><div class="sectionHeader"><h2>🔥 Trending Today</h2><button onclick="navigate('search')">Explore →</button></div><div id="trendingGrid" class="grid"></div></section>
+<section class="section"><div class="sectionHeader"><h2>⭐ Highest Rated</h2></div><div id="topGrid" class="grid"></div></section>
+<section class="section"><div class="sectionHeader"><h2>🎬 Popular Movies</h2></div><div id="movieHomeGrid" class="grid"></div></section>
+<section class="section"><div class="sectionHeader"><h2>📺 Popular TV Shows</h2></div><div id="tvHomeGrid" class="grid"></div></section>
+</section>
+
+<section id="page-movies" class="page">
+<div class="pageTitle">Movies</div>
+<div class="pageSubtitle">Browse movies by streaming service, genre, popularity and rating.</div>
+<div class="filters">
+<div class="filterHeader"><strong>Browse Movies</strong><button class="clearFilters" onclick="clearFilters()">Clear</button></div>
+<div class="filterRow">
+<span class="filterLabel">Provider</span>
+<button class="filterChip active" data-provider="" onclick="setProvider(this)">All</button>
+<button class="filterChip" data-provider="8" onclick="setProvider(this)">Netflix</button>
+<button class="filterChip" data-provider="119" onclick="setProvider(this)">Prime Video</button>
+<button class="filterChip" data-provider="2" onclick="setProvider(this)">Apple TV</button>
+<button class="filterChip" data-provider="337" onclick="setProvider(this)">Disney+</button>
+<button class="filterChip" data-provider="15" onclick="setProvider(this)">Hulu</button>
+<button class="filterChip" data-provider="283" onclick="setProvider(this)">Crunchyroll</button>
+</div>
+<div class="filterRow">
+<span class="filterLabel">Genre</span>
+<button class="filterChip active" data-genre="" onclick="setGenre(this)">All</button>
+<button class="filterChip" data-genre="28" onclick="setGenre(this)">Action</button>
+<button class="filterChip" data-genre="12" onclick="setGenre(this)">Adventure</button>
+<button class="filterChip" data-genre="16" onclick="setGenre(this)">Animation</button>
+<button class="filterChip" data-genre="35" onclick="setGenre(this)">Comedy</button>
+<button class="filterChip" data-genre="80" onclick="setGenre(this)">Crime</button>
+<button class="filterChip" data-genre="99" onclick="setGenre(this)">Documentary</button>
+<button class="filterChip" data-genre="18" onclick="setGenre(this)">Drama</button>
+<button class="filterChip" data-genre="10751" onclick="setGenre(this)">Family</button>
+<button class="filterChip" data-genre="14" onclick="setGenre(this)">Fantasy</button>
+<button class="filterChip" data-genre="27" onclick="setGenre(this)">Horror</button>
+<button class="filterChip" data-genre="9648" onclick="setGenre(this)">Mystery</button>
+<button class="filterChip" data-genre="10749" onclick="setGenre(this)">Romance</button>
+<button class="filterChip" data-genre="878" onclick="setGenre(this)">Sci-Fi</button>
+<button class="filterChip" data-genre="53" onclick="setGenre(this)">Thriller</button>
+<button class="filterChip" data-genre="10752" onclick="setGenre(this)">War</button>
+<button class="filterChip" data-genre="37" onclick="setGenre(this)">Western</button>
+</div>
+<div id="movieFilterStatus" class="filterStatus">Showing all movies</div>
+</div>
+<div id="moviesGrid" class="grid"></div>
+<div id="moviesPagination" class="pagination"></div>
+</section>
+
+<section id="page-tv" class="page">
+<div class="pageTitle">TV Shows</div>
+<div class="pageSubtitle">Browse shows by streaming service and genre.</div>
+<div class="filters">
+<div class="filterHeader"><strong>Browse TV Shows</strong><button class="clearFilters" onclick="clearFilters()">Clear</button></div>
+<div class="filterRow">
+<span class="filterLabel">Provider</span>
+<button class="filterChip active" data-provider="" onclick="setProvider(this)">All</button>
+<button class="filterChip" data-provider="8" onclick="setProvider(this)">Netflix</button>
+<button class="filterChip" data-provider="119" onclick="setProvider(this)">Prime Video</button>
+<button class="filterChip" data-provider="2" onclick="setProvider(this)">Apple TV</button>
+<button class="filterChip" data-provider="337" onclick="setProvider(this)">Disney+</button>
+<button class="filterChip" data-provider="15" onclick="setProvider(this)">Hulu</button>
+<button class="filterChip" data-provider="283" onclick="setProvider(this)">Crunchyroll</button>
+</div>
+<div class="filterRow">
+<span class="filterLabel">Genre</span>
+<button class="filterChip active" data-genre="" onclick="setGenre(this)">All</button>
+<button class="filterChip" data-genre="10759" onclick="setGenre(this)">Action</button>
+<button class="filterChip" data-genre="16" onclick="setGenre(this)">Animation</button>
+<button class="filterChip" data-genre="35" onclick="setGenre(this)">Comedy</button>
+<button class="filterChip" data-genre="80" onclick="setGenre(this)">Crime</button>
+<button class="filterChip" data-genre="99" onclick="setGenre(this)">Documentary</button>
+<button class="filterChip" data-genre="18" onclick="setGenre(this)">Drama</button>
+<button class="filterChip" data-genre="10751" onclick="setGenre(this)">Family</button>
+<button class="filterChip" data-genre="10765" onclick="setGenre(this)">Fantasy/Sci-Fi</button>
+<button class="filterChip" data-genre="9648" onclick="setGenre(this)">Mystery</button>
+<button class="filterChip" data-genre="10749" onclick="setGenre(this)">Romance</button>
+<button class="filterChip" data-genre="10768" onclick="setGenre(this)">War/Politics</button>
+</div>
+<div id="tvFilterStatus" class="filterStatus">Showing all TV shows</div>
+</div>
+<div id="tvGrid" class="grid"></div>
+<div id="tvPagination" class="pagination"></div>
+</section>
+
+<section id="page-mylist" class="page">
+<div class="pageTitle">My List</div>
+<div class="pageSubtitle">Your saved movies and TV shows.</div>
+<div id="myListGrid" class="grid"></div>
+</section>
+
+<section id="page-search" class="page">
+<div class="pageTitle">Search</div>
+<div class="pageSubtitle">Search movies and TV shows.</div>
+<div class="searchBox"><span>⌕</span><input id="searchInput" placeholder="Search movies and TV shows..." autocomplete="off"></div>
+<div id="searchGrid" class="grid"></div>
+</section>
+
+<section id="detailsView" class="details">
+<button class="backButton" onclick="closeDetails()">← Back</button>
+<div id="detailsContent"></div>
+</section>
+
+</main>
+
+<div id="player" class="player">
+<div class="playerBar">
+<button class="secondary" onclick="closePlayer()">← Back</button>
+<div id="playerTitle" class="playerTitle">Now Playing</div>
+<button class="playerFullscreen" onclick="fullscreenPlayer()">⛶</button>
+</div>
+<iframe id="playerFrame" class="playerFrame" allowfullscreen></iframe>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const TMDB_TOKEN="eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIwNTVlMDhhMjQ0ZDZhYWNiZTQ0ZDQ0NWUyMDgwNDkxYSIsIm5iZiI6MTc4Nzk0NDE1NC4wNTIsInN1YiI6IjZhOTFkY2RhNjBlZWMyMjMyYjc5M2Q1NyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.Er0w7FeMJe-RBp0qm50EjIkkxUWMhpE-jsORYXNv4jw";
+const CODESPECTERS_KEY="nx_04f76a6ae447411da6b46dd5562ae444";
+const TMDB="https://api.themoviedb.org/3";
+const IMG="https://image.tmdb.org/t/p/w500";
+const BACKDROP="https://image.tmdb.org/t/p/w1280";
+const REGION="IN";
+
+const state={
+page:"home",
+details:null,
+hero:null,
+catalog:new Map(),
+provider:"",
+genre:"",
+heroTimer:null,
+moviePage:1,
+movieTotalPages:1,
+tvPage:1,
+tvTotalPages:1
+};
+
+async function api(path){
+const r=await fetch(TMDB+path,{
+headers:{
+Authorization:"Bearer "+TMDB_TOKEN,
+"Content-Type":"application/json"
+}
+});
+if(!r.ok)throw new Error("TMDB "+r.status);
+return r.json();
+}
+
+function safe(v){
+return String(v||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+}
+
+function register(item){
+const type=item.media_type||(item.name?"tv":"movie");
+const key=type+":"+item.id;
+state.catalog.set(key,{...item,media_type:type});
+return key;
+}
+
+function quality(items){
+return items.filter(x=>Number(x.vote_average||0)>=0);
+}
+
+function highestRated(items){
+return [...items].sort((a,b)=>{
+const r=Number(b.vote_average||0)-Number(a.vote_average||0);
+return r||Number(b.vote_count||0)-Number(a.vote_count||0);
+});
+}
+
+function card(item){
+const key=register(item);
+const title=item.title||item.name||"Unknown";
+const date=item.release_date||item.first_air_date||"";
+const poster=item.poster_path?IMG+item.poster_path:"";
+return '<article class="card" onclick="openDetails(\''+key+'\')">'+
+(poster?'<img class="poster" src="'+poster+'" loading="lazy" alt="'+safe(title)+'">':'<div class="poster"></div>')+
+'<div class="cardOverlay"><button class="quickPlay" onclick="event.stopPropagation();quickPlay(\''+key+'\')">▶</button></div>'+
+'<div class="cardInfo"><div class="cardTitle">'+safe(title)+'</div><div class="cardMeta"><span>'+date.substring(0,4)+'</span><span class="rating">★ '+Number(item.vote_average||0).toFixed(1)+'</span></div></div></article>';
+}
+
+function render(id,items,animClass="anim-fade"){
+const el=document.getElementById(id);
+if(!el)return;
+el.classList.remove("anim-next","anim-prev","anim-fade");
+void el.offsetWidth;
+el.classList.add(animClass);
+el.innerHTML=items.length?items.map(card).join(""):'<div class="empty">Nothing found.</div>';
+}
+
+function renderPagination(containerId, currentPage, totalPages, onSelectFn){
+const el=document.getElementById(containerId);
+if(!el)return;
+if(totalPages<=1){ el.innerHTML=""; return; }
+
+let html='<button class="pageBtn" '+(currentPage===1?'disabled':'')+' onclick="'+onSelectFn+'('+(currentPage-1)+')">‹ Prev</button>';
+
+let startPage=Math.max(1, currentPage - 2);
+let endPage=Math.min(totalPages, currentPage + 2);
+
+if(startPage > 1){
+html+='<button class="pageBtn" onclick="'+onSelectFn+'(1)">1</button>';
+if(startPage > 2) html+='<span class="pageDots">…</span>';
+}
+
+for(let i=startPage; i<=endPage; i++){
+html+='<button class="pageBtn '+(i===currentPage?'active':'')+'" onclick="'+onSelectFn+'('+i+')">'+i+'</button>';
+}
+
+if(endPage < totalPages){
+if(endPage < totalPages - 1) html+='<span class="pageDots">…</span>';
+html+='<button class="pageBtn" onclick="'+onSelectFn+'('+totalPages+')">'+totalPages+'</button>';
+}
+
+html+='<button class="pageBtn" '+(currentPage===totalPages?'disabled':'')+' onclick="'+onSelectFn+'('+(currentPage+1)+')">Next ›</button>';
+el.innerHTML=html;
+}
+
+let toastTimer;
+function toast(message){
+const el=document.getElementById("toast");
+el.textContent=message;
+el.classList.add("show");
+clearTimeout(toastTimer);
+toastTimer=setTimeout(()=>el.classList.remove("show"),2200);
+}
+
+function getList(){
+try{return JSON.parse(localStorage.getItem("localstream_list")||"[]")}catch{return[]}
+}
+
+function setList(v){
+localStorage.setItem("localstream_list",JSON.stringify(v));
+}
+
+function getContinue(){
+try{return JSON.parse(localStorage.getItem("localstream_continue")||"[]")}catch{return[]}
+}
+
+function setContinue(v){
+localStorage.setItem("localstream_continue",JSON.stringify(v));
+}
+
+function navigate(page){
+state.details=null;
+const d=document.getElementById("detailsView");
+d.classList.remove("active");
+d.style.display="none";
+d.innerHTML='<button class="backButton" onclick="closeDetails()">← Back</button><div id="detailsContent"></div>';
+
+document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+const target=document.getElementById("page-"+page);
+if(!target)return;
+target.classList.add("active");
+state.page=page;
+
+document.querySelectorAll(".navButton").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
+
+if(page==="movies")loadMovies(1);
+if(page==="tv")loadTV(1);
+if(page==="mylist")renderMyList();
+
+window.scrollTo({top:0,behavior:"smooth"});
+}
+
+async function openDetails(key){
+const item=state.catalog.get(key);
+if(!item)return toast("Title unavailable");
+
+document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+
+const details=document.getElementById("detailsView");
+details.classList.remove("active");
+details.style.display="none";
+
+try{
+const type=item.media_type==="tv"?"tv":"movie";
+const data=await api("/"+type+"/"+item.id+"?language=en-US");
+state.details={...data,media_type:type};
+
+const title=data.title||data.name||"Unknown";
+const poster=data.poster_path?IMG+data.poster_path:"";
+const backdrop=data.backdrop_path?BACKDROP+data.backdrop_path:"";
+const date=data.release_date||data.first_air_date||"";
+const saved=isSaved(data,type);
+
+document.getElementById("detailsContent").innerHTML=
+'<div class="detailHero">'+
+(backdrop?'<img class="detailBackdrop" src="'+backdrop+'">':"")+
+'<div class="detailShade"></div>'+
+'<div class="detailContent">'+
+(poster?'<img class="detailPoster" src="'+poster+'" alt="">':"")+
+'<div class="detailTitle">'+safe(title)+'</div>'+
+'<div class="detailMeta">'+date.substring(0,4)+' • <span class="rating">★ '+Number(data.vote_average||0).toFixed(1)+'</span> • '+(type==="tv"?"TV Show":"Movie")+'</div>'+
+'<div class="detailOverview">'+safe(data.overview||"No description available.")+'</div>'+
+'<div class="detailButtons"><button class="primary" onclick="playDetails()">▶ '+(type==="tv"?"Play First Episode":"Play Movie")+'</button><button id="detailListButton" class="secondary" onclick="toggleDetailsList()">'+(saved?"✓ In My List":"＋ My List")+'</button></div>'+
+'<div class="clear"></div></div></div>'+
+(type==="tv"?'<div class="seasons"><div class="sectionHeader"><h2>Seasons & Episodes</h2></div><select id="seasonSelect" class="seasonSelect" onchange="loadEpisodes('+data.id+')"></select><div id="episodes" class="episodes"><div class="empty">Loading episodes...</div></div></div>':"");
+
+details.style.display="block";
+details.classList.add("active");
+
+if(type==="tv")populateSeasons(data);
+
+window.scrollTo({top:0,behavior:"smooth"});
+}catch(e){
+console.error(e);
+toast("Could not load title");
+}
+}
+
+function closeDetails(){
+const d=document.getElementById("detailsView");
+d.classList.remove("active");
+d.style.display="none";
+state.details=null;
+navigate("home");
+}
+
+function isSaved(item,type){
+return getList().some(x=>x.id===item.id&&x.media_type===type);
+}
+
+function toggleList(item){
+const type=item.media_type||(item.name?"tv":"movie");
+const list=getList();
+const index=list.findIndex(x=>x.id===item.id&&x.media_type===type);
+
+if(index>=0){
+list.splice(index,1);
+toast("Removed from My List");
+}else{
+list.unshift({
+id:item.id,
+title:item.title,
+name:item.name,
+poster_path:item.poster_path,
+backdrop_path:item.backdrop_path,
+overview:item.overview,
+vote_average:item.vote_average,
+vote_count:item.vote_count,
+release_date:item.release_date,
+first_air_date:item.first_air_date,
+media_type:type
+});
+toast("Added to My List");
+}
+
+setList(list);
+renderMyList();
+
+if(state.details){
+const b=document.getElementById("detailListButton");
+if(b)b.textContent=isSaved(state.details,state.details.media_type)?"✓ In My List":"＋ My List";
+}
+}
+
+function toggleDetailsList(){
+if(state.details)toggleList(state.details);
+}
+
+function renderMyList(){
+const list=getList();
+if(!list.length){
+document.getElementById("myListGrid").innerHTML='<div class="empty">Your list is empty.<br><br>Open a title and press ＋ My List.</div>';
+return;
+}
+render("myListGrid",list);
+}
+
+function rememberWatching(data){
+const list=getContinue();
+const entry={
+id:data.id,
+title:data.title,
+poster_path:data.poster_path,
+media_type:data.type||"movie",
+season:data.season,
+episode:data.episode,
+time:Date.now()
+};
+const filtered=list.filter(x=>!(x.id===entry.id&&x.media_type===entry.media_type&&(entry.media_type!=="tv"||x.season===entry.season&&x.episode===entry.episode)));
+filtered.unshift(entry);
+setContinue(filtered.slice(0,20));
+renderContinue();
+}
+
+function renderContinue(){
+const list=getContinue();
+if(!list.length){
+document.getElementById("continueGrid").innerHTML='<div class="empty">Nothing here yet.<br><br>Start watching something and it will appear here.</div>';
+return;
+}
+render("continueGrid",list.slice(0,6).map(x=>({
+id:x.id,
+title:x.title,
+name:x.media_type==="tv"?x.title:undefined,
+poster_path:x.poster_path,
+media_type:x.media_type
+})));
+}
+
+function playMovie(item){
+rememberWatching({id:item.id,title:item.title||item.name,poster_path:item.poster_path,type:"movie"});
+openPlayer("https://api.codespecters.com/embed/movie/"+item.id+"?apikey="+CODESPECTERS_KEY,"Movie • "+(item.title||item.name||"Unknown"));
+}
+
+function playTV(item,season,episode){
+rememberWatching({id:item.id,title:item.name||item.title,poster_path:item.poster_path,type:"tv",season,episode});
+openPlayer("https://api.codespecters.com/embed/tv/"+item.id+"/"+season+"/"+episode+"?apikey="+CODESPECTERS_KEY,"TV • "+(item.name||item.title||"Unknown")+" • S"+season+" E"+episode);
+}
+
+function playDetails(){
+if(!state.details)return;
+if(state.details.media_type==="tv")playTV(state.details,1,1);
+else playMovie(state.details);
+}
+
+function quickPlay(key){
+const item=state.catalog.get(key);
+if(!item)return;
+item.media_type==="tv"?playTV(item,1,1):playMovie(item);
+}
+
+function openPlayer(url,title){
+document.getElementById("playerFrame").src=url;
+document.getElementById("playerTitle").textContent=title;
+document.getElementById("player").classList.add("active");
+document.body.style.overflow="hidden";
+}
+
+function closePlayer(){
+document.getElementById("player").classList.remove("active");
+setTimeout(()=>document.getElementById("playerFrame").src="",250);
+document.body.style.overflow="";
+}
+
+function fullscreenPlayer(){
+const f=document.getElementById("playerFrame");
+if(f.requestFullscreen)f.requestFullscreen();
+}
+
+async function loadHome(){
+try{
+const [trending,topRated,movies,tv]=await Promise.all([
+api("/trending/all/day"),
+api("/movie/top_rated?language=en-US&page=1"),
+api("/movie/popular?language=en-US&page=1"),
+api("/tv/popular?language=en-US&page=1")
+]);
+
+const trend=quality(trending.results||[]);
+const top=highestRated(quality(topRated.results||[]));
+const ml=highestRated(quality(movies.results||[]));
+const tl=highestRated(quality(tv.results||[]));
+
+render("trendingGrid",trend.slice(0,6));
+render("topGrid",top.slice(0,6));
+render("movieHomeGrid",ml.slice(0,6));
+render("tvHomeGrid",tl.slice(0,6));
+setupHero(trend.length?trend:top);
+renderContinue();
+}catch(e){
+console.error("HOME ERROR:",e);
+toast("Could not load Home");
+}
+}
+
+function setupHero(items){
+if(!items.length)return;
+let index=0;
+clearInterval(state.heroTimer);
+
+function update(){
+const item=items[index];
+state.hero=item;
+document.getElementById("heroImage").src=item.backdrop_path?BACKDROP+item.backdrop_path:"";
+document.getElementById("heroTitle").textContent=item.title||item.name||"Featured";
+document.getElementById("heroDescription").textContent=item.overview||"Discover something new.";
+const date=item.release_date||item.first_air_date||"";
+document.getElementById("heroYear").textContent=date.substring(0,4)||"—";
+document.getElementById("heroRating").textContent="★ "+Number(item.vote_average||0).toFixed(1);
+document.getElementById("heroType").textContent=item.name?"TV Show":"Movie";
+}
+
+update();
+
+state.heroTimer=setInterval(()=>{
+index=(index+1)%items.length;
+update();
+},10000);
+}
+
+document.getElementById("heroPlay").onclick=()=>{
+if(!state.hero)return toast("Still loading...");
+state.hero.media_type==="tv"||state.hero.name?playTV(state.hero,1,1):playMovie(state.hero);
+};
+
+document.getElementById("heroList").onclick=()=>{
+if(state.hero)toggleList(state.hero);
+};
+
+function buildDiscover(type, targetPage=1, includeRegion=true){
+const p=new URLSearchParams();
+p.set("language","en-US");
+p.set("page",targetPage.toString());
+p.set("sort_by","popularity.desc");
+p.set("include_adult","false");
+
+if(!state.provider && !state.genre){
+p.set("vote_count.gte",type==="movie"?"100":"50");
+}else{
+p.set("vote_count.gte","0");
+}
+
+if(state.genre)p.set("with_genres",state.genre);
+
+if(state.provider){
+if(includeRegion) p.set("watch_region",REGION);
+p.set("with_watch_providers",state.provider);
+p.set("with_watch_monetization_types","flatrate");
+}
+
+return "/discover/"+type+"?"+p.toString();
+}
+
+async function loadMovies(requestedPage=1){
+const grid=document.getElementById("moviesGrid");
+const direction = requestedPage > state.moviePage ? "anim-next" : (requestedPage < state.moviePage ? "anim-prev" : "anim-fade");
+state.moviePage = requestedPage;
+
+grid.innerHTML='<div class="empty">Loading movies...</div>';
+try{
+let data=await api(buildDiscover("movie", requestedPage, true));
+
+if((!data.results || data.results.length === 0) && state.provider){
+data=await api(buildDiscover("movie", requestedPage, false));
+}
+
+const items=quality(data.results||[]);
+state.movieTotalPages=Math.min(data.total_pages||1, 500);
+
+render("moviesGrid",items,direction);
+renderPagination("moviesPagination", state.moviePage, state.movieTotalPages, "loadMovies");
+document.getElementById("movieFilterStatus").textContent="Showing page "+state.moviePage+" of "+state.movieTotalPages+" ("+items.length+" movies)";
+
+if(requestedPage > 1) {
+document.getElementById("page-movies").scrollIntoView({behavior:"smooth"});
+}
+}catch(e){
+console.error(e);
+grid.innerHTML='<div class="empty">Could not load movies.</div>';
+}
+}
+
+async function loadTV(requestedPage=1){
+const grid=document.getElementById("tvGrid");
+const direction = requestedPage > state.tvPage ? "anim-next" : (requestedPage < state.tvPage ? "anim-prev" : "anim-fade");
+state.tvPage = requestedPage;
+
+grid.innerHTML='<div class="empty">Loading TV shows...</div>';
+try{
+let data=await api(buildDiscover("tv", requestedPage, true));
+
+if((!data.results || data.results.length === 0) && state.provider){
+data=await api(buildDiscover("tv", requestedPage, false));
+}
+
+const items=quality(data.results||[]);
+state.tvTotalPages=Math.min(data.total_pages||1, 500);
+
+render("tvGrid",items,direction);
+renderPagination("tvPagination", state.tvPage, state.tvTotalPages, "loadTV");
+document.getElementById("tvFilterStatus").textContent="Showing page "+state.tvPage+" of "+state.tvTotalPages+" ("+items.length+" TV shows)";
+
+if(requestedPage > 1) {
+document.getElementById("page-tv").scrollIntoView({behavior:"smooth"});
+}
+}catch(e){
+console.error(e);
+grid.innerHTML='<div class="empty">Could not load TV shows.</div>';
+}
+}
+
+function setProvider(button){
+state.provider=button.dataset.provider||"";
+const page=state.page;
+const container=document.getElementById("page-"+page);
+if(container){
+container.querySelectorAll("[data-provider]").forEach(x=>x.classList.toggle("active",x.dataset.provider===state.provider));
+}
+if(page==="movies")loadMovies(1);
+if(page==="tv")loadTV(1);
+}
+
+function setGenre(button){
+state.genre=button.dataset.genre||"";
+const page=state.page;
+const container=document.getElementById("page-"+page);
+if(container){
+container.querySelectorAll("[data-genre]").forEach(x=>x.classList.toggle("active",x.dataset.genre===state.genre));
+}
+if(page==="movies")loadMovies(1);
+if(page==="tv")loadTV(1);
+}
+
+function clearFilters(){
+state.provider="";
+state.genre="";
+const page=document.getElementById("page-"+state.page);
+if(page){
+page.querySelectorAll("[data-provider]").forEach(x=>x.classList.toggle("active",x.dataset.provider===""));
+page.querySelectorAll("[data-genre]").forEach(x=>x.classList.toggle("active",x.dataset.genre===""));
+}
+if(state.page==="movies")loadMovies(1);
+if(state.page==="tv")loadTV(1);
+}
+
+async function search(query){
+query=query.trim();
+if(!query)return;
+
+navigate("search");
+
+const grid=document.getElementById("searchGrid");
+grid.innerHTML='<div class="empty">Searching for "<b>'+safe(query)+'</b>"...</div>';
+
+try{
+const data=await api("/search/multi?query="+encodeURIComponent(query)+"&language=en-US&page=1&include_adult=false");
+const items=highestRated((data.results||[]).filter(x=>x.media_type==="movie"||x.media_type==="tv"));
+render("searchGrid",items.slice(0,30));
+}catch(e){
+console.error(e);
+grid.innerHTML='<div class="empty">Search failed.</div>';
+}
+}
+
+document.getElementById("searchInput").addEventListener("keydown",e=>{
+if(e.key==="Enter")search(e.target.value);
+});
+
+document.getElementById("miniSearch").addEventListener("keydown",e=>{
+if(e.key==="Enter")search(e.target.value);
+});
+
+document.querySelectorAll(".navButton").forEach(button=>{
+button.addEventListener("click",()=>navigate(button.dataset.page));
+});
+
+function populateSeasons(show){
+const select=document.getElementById("seasonSelect");
+if(!select)return;
+const seasons=(show.seasons||[]).filter(x=>x.season_number>0);
+select.innerHTML=seasons.map(x=>'<option value="'+x.season_number+'">Season '+x.season_number+' • '+x.episode_count+' Episodes</option>').join("");
+if(seasons.length)loadEpisodes(show.id);
+}
+
+async function loadEpisodes(id){
+const select=document.getElementById("seasonSelect");
+const container=document.getElementById("episodes");
+if(!select||!container)return;
+
+const season=Number(select.value);
+container.innerHTML='<div class="empty">Loading episodes...</div>';
+
+try{
+const data=await api("/tv/"+id+"/season/"+season+"?language=en-US");
+const episodes=data.episodes||[];
+
+if(!episodes.length){
+container.innerHTML='<div class="empty">No episodes found.</div>';
+return;
+}
+
+container.innerHTML=episodes.map(e=>{
+const image=e.still_path?IMG+e.still_path:"";
+return '<div class="episode" onclick="playEpisode('+id+','+season+','+e.episode_number+')">'+
+(image?'<img class="episodeImage" src="'+image+'">':'<div class="episodeImage"></div>')+
+'<div><div class="episodeName">'+safe(e.name||"Episode "+e.episode_number)+'</div>'+
+'<div class="episodeMeta">Episode '+e.episode_number+' • <span class="rating">★ '+Number(e.vote_average||0).toFixed(1)+'</span></div></div></div>';
+}).join("");
+}catch(e){
+console.error(e);
+container.innerHTML='<div class="empty">Could not load episodes.</div>';
+}
+}
+
+function playEpisode(id,season,episode){
+if(state.details)playTV(state.details,season,episode);
+}
+
+document.addEventListener("keydown",e=>{
+if(e.key==="Escape"){
+if(document.getElementById("player").classList.contains("active"))closePlayer();
+else if(state.details)closeDetails();
+}
+});
+
+loadHome();
+</script>
+</body>
+</html>
