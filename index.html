@@ -17,20 +17,19 @@ button:active{transform:scale(.97)}
 ::-webkit-scrollbar-thumb{background:#292d38;border-radius:20px}
 
 .nav{position:sticky;top:0;z-index:1000;height:70px;display:flex;align-items:center;padding:0 30px;background:rgba(6,7,11,.84);backdrop-filter:blur(25px);border-bottom:1px solid var(--border)}
-.logo{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:900;letter-spacing:-.5px;cursor:pointer}
+.logo{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:900;letter-spacing:-.5px}
 .logoIcon{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 10px 30px rgba(103,92,255,.3)}
 .navLinks{display:flex;gap:3px;margin-left:32px}
 .navButton{position:relative;border:0;padding:10px 13px;border-radius:9px;background:transparent;color:#737b8d;font-size:12px;font-weight:750;transition:.2s}
 .navButton:hover{background:rgba(255,255,255,.045);color:white}
 .navButton.active{background:rgba(103,92,255,.14);color:white}
 .navButton.active:after{content:"";position:absolute;bottom:3px;left:50%;width:18px;height:2px;transform:translateX(-50%);border-radius:5px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
-.navRight{margin-left:auto;display:flex;align-items:center;gap:12px}
+.navRight{margin-left:auto;display:flex;align-items:center;gap:10px}
 .miniSearch{width:215px;height:38px;display:flex;align-items:center;padding:0 11px;border:1px solid var(--border);border-radius:10px;background:#10121a}
 .miniSearch:focus-within{border-color:rgba(103,92,255,.65);box-shadow:0 0 0 3px rgba(103,92,255,.1)}
 .miniSearch span{color:#71798a;margin-right:8px}
 .miniSearch input{width:100%;border:0;outline:0;background:transparent;color:white;font-size:11px}
-.avatar{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,#675cff,#9a63ff);font-size:12px;font-weight:850;cursor:pointer;transition:.2s;box-shadow:0 4px 15px rgba(0,0,0,.3)}
-.avatar:hover{transform:scale(1.08)}
+.avatar{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,#252936,#14161d);font-size:11px;font-weight:850}
 
 .app{width:min(1280px,calc(100% - 48px));margin:auto;padding-bottom:100px}
 .page{display:none;padding-top:26px}
@@ -64,9 +63,18 @@ button:active{transform:scale(.97)}
 .grid.anim-prev{animation:gridPagePrev .35s cubic-bezier(.2,.8,.2,1)}
 .grid.anim-fade{animation:gridFadeIn .3s ease-out}
 
-@keyframes gridPageNext{from{opacity:0;transform:translateX(35px) scale(.98)}to{opacity:1;transform:translateX(0) scale(1)}}
-@keyframes gridPagePrev{from{opacity:0;transform:translateX(-35px) scale(.98)}to{opacity:1;transform:translateX(0) scale(1)}}
-@keyframes gridFadeIn{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+@keyframes gridPageNext{
+from{opacity:0;transform:translateX(35px) scale(.98)}
+to{opacity:1;transform:translateX(0) scale(1)}
+}
+@keyframes gridPagePrev{
+from{opacity:0;transform:translateX(-35px) scale(.98)}
+to{opacity:1;transform:translateX(0) scale(1)}
+}
+@keyframes gridFadeIn{
+from{opacity:0;transform:translateY(15px)}
+to{opacity:1;transform:translateY(0)}
+}
 
 .card{position:relative;min-width:0;overflow:hidden;border:1px solid var(--border);border-radius:13px;background:linear-gradient(180deg,#11141c,#0d0f15);cursor:pointer;transition:.25s}
 .card:hover{transform:translateY(-7px) scale(1.012);border-color:rgba(255,255,255,.16);box-shadow:0 18px 42px rgba(0,0,0,.38)}
@@ -138,27 +146,35 @@ button:active{transform:scale(.97)}
 .playerFullscreen{margin-left:auto;border:1px solid var(--border);border-radius:9px;padding:8px 12px;background:#171a22;color:white;font-size:11px}
 .playerFrame{position:absolute;left:0;top:62px;width:100%;height:calc(100% - 62px);border:0;background:#000}
 
-/* Profiles Modal */
-.modalOverlay{position:fixed;inset:0;z-index:9000;display:none;place-items:center;background:rgba(4,5,8,.85);backdrop-filter:blur(15px);opacity:0;transition:.25s}
-.modalOverlay.active{display:grid;opacity:1}
-.profilesBox{width:min(520px,90%);padding:35px;border:1px solid var(--border);border-radius:22px;background:#0d0f15;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,.6)}
-.profilesTitle{font-size:26px;font-weight:900;letter-spacing:-1px}
-.profilesSub{margin-top:6px;color:#757d90;font-size:12px;margin-bottom:28px}
-.profilesList{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:25px}
-.profileCard{display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;position:relative}
-.profileAvatar{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;font-size:20px;font-weight:900;box-shadow:0 8px 24px rgba(0,0,0,.4);transition:.25s;border:2px solid transparent}
-.profileCard:hover .profileAvatar{transform:scale(1.08);border-color:white}
-.profileCard.activeProfile .profileAvatar{border-color:var(--accent2);box-shadow:0 0 20px var(--accent)}
-.profileName{font-size:12px;font-weight:750;color:#9ca4b5}
-.profileCard.activeProfile .profileName{color:white}
-.profileDelete{position:absolute;top:-4px;right:-4px;width:20px;height:20px;border-radius:50%;background:#ff4757;color:white;border:0;font-size:10px;display:none;place-items:center}
-.profileCard:hover .profileDelete{display:grid}
-
-.addProfileRow{display:flex;gap:8px;margin-top:20px;justify-content:center}
-.addProfileRow input{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#11141c;color:white;font-size:12px;outline:0}
-
 .toast{position:fixed;right:24px;bottom:24px;z-index:8000;padding:12px 16px;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(20,22,30,.96);box-shadow:0 15px 45px rgba(0,0,0,.4);font-size:11px;font-weight:750;transform:translateY(20px);opacity:0;pointer-events:none;transition:.25s}
 .toast.show{opacity:1;transform:none}
+
+
+/* Profiles + watch history */
+.avatar{cursor:pointer;overflow:hidden;position:relative}
+.avatar:hover{outline:2px solid rgba(103,92,255,.55)}
+.profileAvatarImage{width:100%;height:100%;object-fit:cover}
+.profileOverlay{position:fixed;inset:0;z-index:9000;display:none;align-items:center;justify-content:center;background:rgba(3,4,8,.93);backdrop-filter:blur(18px)}
+.profileOverlay.active{display:flex;animation:playerFade .2s forwards}
+.profilePanel{width:min(900px,calc(100% - 32px));padding:34px;border:1px solid var(--border);border-radius:24px;background:linear-gradient(180deg,#12151e,#0b0d13);box-shadow:0 30px 90px rgba(0,0,0,.55)}
+.profilePanelTop{display:flex;align-items:center;justify-content:space-between;gap:15px}
+.profilePanel h2{margin:0;font-size:30px;letter-spacing:-1px}
+.profilePanel p{margin:8px 0 0;color:var(--muted);font-size:12px}
+.profileGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-top:28px}
+.profileCard{border:0;background:transparent;color:white;text-align:center;padding:8px;border-radius:15px;transition:.2s}
+.profileCard:hover{background:rgba(255,255,255,.045);transform:translateY(-3px)}
+.profileFace{width:100%;aspect-ratio:1;border-radius:18px;display:grid;place-items:center;font-size:36px;font-weight:950;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 15px 35px rgba(0,0,0,.28);overflow:hidden}
+.profileName{margin-top:10px;font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profileActiveBadge{margin-top:5px;color:#8f87ff;font-size:9px;font-weight:850}
+.profileActions{display:flex;gap:9px;margin-top:24px;flex-wrap:wrap}
+.profileForm{display:flex;gap:9px;margin-top:18px}
+.profileForm input{flex:1;min-width:0;border:1px solid var(--border);border-radius:10px;background:#0d1017;color:white;padding:12px 13px;outline:0}
+.profileForm input:focus{border-color:rgba(103,92,255,.7)}
+.historyMeta{margin-top:6px;font-size:9px;color:#737b8d;line-height:1.4}
+.profileMenuHint{color:#7b8292;font-size:9px;margin-top:8px}
+.apiBadge{display:inline-flex;align-items:center;gap:6px;margin-left:10px;padding:5px 8px;border-radius:999px;border:1px solid var(--border);background:#10131a;color:#747c8e;font-size:9px;font-weight:800}
+@media(max-width:850px){.profileGrid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:520px){.profileGrid{grid-template-columns:repeat(2,1fr)}.profilePanel{padding:22px}}
 
 @media(max-width:1100px){.grid{grid-template-columns:repeat(5,1fr)}}
 @media(max-width:850px){.nav{padding:0 15px}.navLinks{display:none}.miniSearch{display:none}.app{width:calc(100% - 24px)}.grid{grid-template-columns:repeat(4,1fr)}.episodes{grid-template-columns:repeat(2,1fr)}}
@@ -168,18 +184,17 @@ button:active{transform:scale(.97)}
 <body>
 
 <nav class="nav">
-<div class="logo" onclick="navigate('home')"><div class="logoIcon">▶</div>LocalStream</div>
+<div class="logo"><div class="logoIcon">▶</div>LocalStream</div>
 <div class="navLinks">
 <button class="navButton active" data-page="home">Home</button>
 <button class="navButton" data-page="movies">Movies</button>
 <button class="navButton" data-page="tv">TV Shows</button>
 <button class="navButton" data-page="mylist">My List</button>
-<button class="navButton" data-page="history">History</button>
 <button class="navButton" data-page="search">Search</button>
 </div>
 <div class="navRight">
 <div class="miniSearch"><span>⌕</span><input id="miniSearch" placeholder="Search..."></div>
-<div id="navAvatar" class="avatar" onclick="openProfilesModal()">LS</div>
+<div id="profileButton" class="avatar" title="Switch profile" onclick="openProfiles()">P1</div>
 </div>
 </nav>
 
@@ -287,13 +302,13 @@ button:active{transform:scale(.97)}
 
 <section id="page-mylist" class="page">
 <div class="pageTitle">My List</div>
-<div class="pageSubtitle">Your saved movies and TV shows.</div>
+<div class="pageSubtitle">Saved only for the current profile.</div>
 <div id="myListGrid" class="grid"></div>
 </section>
 
 <section id="page-history" class="page">
 <div class="pageTitle">Watch History</div>
-<div class="pageSubtitle">All movies and episodes you have previously watched.</div>
+<div id="historySubtitle" class="pageSubtitle">Everything watched on this profile, newest first.</div>
 <div id="historyGrid" class="grid"></div>
 </section>
 
@@ -320,29 +335,29 @@ button:active{transform:scale(.97)}
 <iframe id="playerFrame" class="playerFrame" allowfullscreen></iframe>
 </div>
 
-<!-- Profiles Modal -->
-<div id="profilesModal" class="modalOverlay">
-<div class="profilesBox">
-<div class="profilesTitle">Who's Watching?</div>
-<div class="profilesSub">Switch profile to view personalized watch lists and history.</div>
-<div id="profilesList" class="profilesList"></div>
-<div class="addProfileRow">
-<input id="newProfileName" placeholder="New Profile Name..." maxlength="12">
-<button class="primary" onclick="createProfile()">Add Profile</button>
-</div>
-<br>
-<button class="secondary" onclick="closeProfilesModal()">Done</button>
-</div>
-</div>
-
 <div id="toast" class="toast"></div>
+
+<div id="profileOverlay" class="profileOverlay">
+  <div class="profilePanel">
+    <div class="profilePanelTop">
+      <div><h2>Who’s watching?</h2><p>Each profile keeps its own My List, Continue Watching and full watch history.</p></div>
+      <button class="secondary" onclick="closeProfiles()">Close</button>
+    </div>
+    <div id="profileGrid" class="profileGrid"></div>
+    <div class="profileForm">
+      <input id="newProfileName" maxlength="18" placeholder="New profile name">
+      <button class="primary" onclick="addProfile()">＋ Add Profile</button>
+    </div>
+    <div class="profileActions"><button class="secondary" onclick="deleteCurrentProfile()">Delete Current Profile</button></div>
+  </div>
+</div>
 
 <script>
 const TMDB_TOKEN="eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIwNTVlMDhhMjQ0ZDZhYWNiZTQ0ZDQ0NWUyMDgwNDkxYSIsIm5iZiI6MTc4Nzk0NDE1NC4wNTIsInN1YiI6IjZhOTFkY2RhNjBlZWMyMjMyYjc5M2Q1NyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.Er0w7FeMJe-RBp0qm50EjIkkxUWMhpE-jsORYXNv4jw";
 const CODESPECTERS_KEY="nx_04f76a6ae447411da6b46dd5562ae444";
-const OMDB_API_KEY="trilogy"; // Secondary API key for failover
+const WATCHMODE_KEY="U956uRAIxps2bLclnJgU12xH1dmBFaaXxqnzg6Lh";
+const WATCHMODE="https://api.watchmode.com/v1";
 const TMDB="https://api.themoviedb.org/3";
-const OMDB="https://www.omdbapi.com/";
 const IMG="https://image.tmdb.org/t/p/w500";
 const BACKDROP="https://image.tmdb.org/t/p/w1280";
 const REGION="IN";
@@ -359,148 +374,154 @@ moviePage:1,
 movieTotalPages:1,
 tvPage:1,
 tvTotalPages:1,
-activeProfileId:"profile_default"
+apiSource:"TMDB",
+watchmodeSources:null
 };
 
-// --- MULTI-PROFILE LOGIC ---
-const DEFAULT_PROFILES=[
-{id:"profile_default", name:"Main", color:"linear-gradient(135deg,#675cff,#9a63ff)"},
-{id:"profile_kids", name:"Kids", color:"linear-gradient(135deg,#ff4757,#ff6b81)"}
-];
+async function tmdbApi(path){
+const r=await fetch(TMDB+path,{headers:{Authorization:"Bearer "+TMDB_TOKEN,"Content-Type":"application/json"}});
+if(!r.ok)throw new Error("TMDB "+r.status);
+return r.json();
+}
 
-function getProfiles(){
+async function watchmodeApi(path){
+const r=await fetch(WATCHMODE+path,{headers:{"X-API-Key":WATCHMODE_KEY,"Content-Type":"application/json"}});
+if(!r.ok)throw new Error("Watchmode "+r.status);
+return r.json();
+}
+
+function wmTypeToTmdb(t){
+return t==="movie"||t==="tv_movie"||t==="short_film"?"movie":"tv";
+}
+
+function adaptWatchmodeItem(x){
+const type=x.tmdb_type||wmTypeToTmdb(x.type);
+const title=x.title||x.name||"Unknown";
+const year=x.year||x.release_year||"";
+const poster=x.poster_url||x.poster||x.image_url||"";
+const backdrop=x.backdrop_url||x.backdrop||"";
+return {
+id:Number(x.tmdb_id||x.tmdbId||x.id),
+watchmode_id:x.id,
+media_type:type,
+title:type==="movie"?title:undefined,
+name:type==="tv"?title:undefined,
+release_date:type==="movie"&&year?String(year)+"-01-01":"",
+first_air_date:type==="tv"&&year?String(year)+"-01-01":"",
+poster_path:poster,
+backdrop_path:backdrop,
+overview:x.plot_overview||x.overview||x.description||"",
+vote_average:Number(x.user_rating||x.tmdb_rating||x.rating||0),
+vote_count:Number(x.vote_count||0),
+_wmImage:true
+};
+}
+
+function getWmDetailsCache(){try{return JSON.parse(localStorage.getItem("localstream_watchmode_cache")||"{}")}catch{return {}}}
+function setWmDetailsCache(v){try{localStorage.setItem("localstream_watchmode_cache",JSON.stringify(v))}catch{}}
+async function watchmodeCachedDetails(id){
+const cache=getWmDetailsCache();
+const hit=cache[id];
+const ttl=7*24*60*60*1000;
+if(hit&&Date.now()-hit.time<ttl)return hit.data;
+const data=await watchmodeApi("/title/"+id+"/details/");
+cache[id]={time:Date.now(),data};
+const keys=Object.keys(cache).sort((a,b)=>cache[b].time-cache[a].time).slice(0,250);
+const trimmed={};keys.forEach(k=>trimmed[k]=cache[k]);setWmDetailsCache(trimmed);
+return data;
+}
+
+async function enrichWatchmode(items,limit=20){
+const subset=items.slice(0,limit);
+const out=[];
+for(const item of subset){
 try{
-const p=JSON.parse(localStorage.getItem("localstream_profiles"));
-return p && p.length ? p : DEFAULT_PROFILES;
-}catch{
-return DEFAULT_PROFILES;
+const id=item.watchmode_id||item.id;
+const d=await watchmodeCachedDetails(id);
+out.push(adaptWatchmodeItem({...item,...d,id:d.id||id,tmdb_id:d.tmdb_id||item.tmdb_id,tmdb_type:d.tmdb_type||item.tmdb_type}));
+}catch{out.push(adaptWatchmodeItem(item));}
 }
-}
-
-function setProfiles(profiles){
-localStorage.setItem("localstream_profiles",JSON.stringify(profiles));
+return out;
 }
 
-function getActiveProfile(){
-const profiles=getProfiles();
-const savedId=localStorage.getItem("localstream_active_profile");
-const found=profiles.find(x=>x.id===savedId);
-return found||profiles[0];
+async function getWatchmodeSources(){
+if(state.watchmodeSources)return state.watchmodeSources;
+try{state.watchmodeSources=await watchmodeApi("/sources/");}catch{state.watchmodeSources=[];}
+return state.watchmodeSources;
 }
 
-function switchProfile(id){
-state.activeProfileId=id;
-localStorage.setItem("localstream_active_profile",id);
-updateProfileAvatar();
-renderProfilesList();
-renderContinue();
-if(state.page==="mylist")renderMyList();
-if(state.page==="history")renderHistory();
-toast("Switched profile to "+getActiveProfile().name);
-closeProfilesModal();
+async function providerToWatchmodeSource(tmdbProvider){
+if(!tmdbProvider)return "";
+const wanted={"8":["Netflix"],"119":["Prime Video","Amazon Prime"],"2":["Apple TV","AppleTV"],"337":["Disney+","Disney Plus"],"15":["Hulu"],"283":["Crunchyroll"]}[String(tmdbProvider)]||[];
+const sources=await getWatchmodeSources();
+const hit=(sources||[]).find(s=>wanted.some(n=>String(s.name||"").toLowerCase().includes(n.toLowerCase())));
+return hit?String(hit.id):"";
 }
 
-function createProfile(){
-const input=document.getElementById("newProfileName");
-const name=(input.value||"").trim();
-if(!name)return toast("Enter a profile name");
-const profiles=getProfiles();
-const colors=["linear-gradient(135deg,#2ed573,#1e90ff)","linear-gradient(135deg,#ffa500,#ff4757)","linear-gradient(135deg,#eccc68,#ff7f50)"];
-const newProf={
-id:"profile_"+Date.now(),
-name:name,
-color:colors[profiles.length % colors.length]
-};
-profiles.push(newProf);
-setProfiles(profiles);
-input.value="";
-switchProfile(newProf.id);
+async function watchmodeFallback(path){
+const u=new URL(path,"https://fallback.local");
+const pathname=u.pathname;
+
+if(/^\/(movie|tv)\/\d+/.test(pathname)){
+const parts=pathname.split("/").filter(Boolean);
+const type=parts[0];
+const tmdbId=parts[1];
+if(parts[2]==="season"){
+const season=Number(parts[3]);
+const eps=await watchmodeApi("/title/tv-"+tmdbId+"/episodes/?regions="+REGION);
+return {episodes:(eps||[]).filter(e=>Number(e.season_number)===season).map(e=>({
+episode_number:e.episode_number,name:e.name||("Episode "+e.episode_number),still_path:e.poster_url||e.image_url||"",vote_average:Number(e.user_rating||0),_wmImage:true
+}))};
+}
+const d=await watchmodeApi("/title/"+type+"-"+tmdbId+"/details/?append_to_response=seasons");
+const a=adaptWatchmodeItem({...d,tmdb_id:Number(tmdbId),tmdb_type:type});
+return {...a,
+id:Number(tmdbId),
+title:type==="movie"?(d.title||a.title):undefined,
+name:type==="tv"?(d.title||a.name):undefined,
+overview:d.plot_overview||d.overview||a.overview,
+poster_path:d.poster_url||d.poster||a.poster_path,
+backdrop_path:d.backdrop_url||d.backdrop||a.backdrop_path,
+seasons:(d.seasons||[]).map(x=>({season_number:x.season_number??x.number,episode_count:x.episode_count||0,name:x.name||("Season "+(x.season_number??x.number))})),
+_wmImage:true};
 }
 
-function deleteProfile(id, event){
-event.stopPropagation();
-let profiles=getProfiles();
-if(profiles.length<=1)return toast("Cannot delete only profile");
-profiles=profiles.filter(x=>x.id!==id);
-setProfiles(profiles);
-if(state.activeProfileId===id)switchProfile(profiles[0].id);
-else renderProfilesList();
+if(pathname==="/search/multi"){
+const q=u.searchParams.get("query")||"";
+const d=await watchmodeApi("/autocomplete-search/?search_value="+encodeURIComponent(q)+"&search_type=2");
+return {results:(d.results||[]).filter(x=>x.result_type==="title").map(adaptWatchmodeItem)};
 }
 
-function updateProfileAvatar(){
-const prof=getActiveProfile();
-state.activeProfileId=prof.id;
-const avatar=document.getElementById("navAvatar");
-avatar.textContent=prof.name.substring(0,2).toUpperCase();
-avatar.style.background=prof.color;
+let types="movie,tv_series,tv_miniseries";
+if(pathname.includes("/movie"))types="movie";
+if(pathname.includes("/tv"))types="tv_series,tv_miniseries";
+const page=Number(u.searchParams.get("page")||1);
+let wm="/list-titles/?types="+types+"&regions="+REGION+"&sort_by=popularity_desc&page="+page+"&limit=20";
+const provider=u.searchParams.get("with_watch_providers");
+if(provider){
+const sourceId=await providerToWatchmodeSource(provider);
+if(sourceId)wm+="&source_ids="+encodeURIComponent(sourceId)+"&source_types=sub";
+}
+const d=await watchmodeApi(wm);
+const items=await enrichWatchmode(d.titles||[],20);
+return {results:items,page:d.page||page,total_pages:d.total_pages||1,total_results:d.total_results||items.length};
 }
 
-function openProfilesModal(){
-renderProfilesList();
-const m=document.getElementById("profilesModal");
-m.classList.add("active");
-}
-
-function closeProfilesModal(){
-document.getElementById("profilesModal").classList.remove("active");
-}
-
-function renderProfilesList(){
-const profiles=getProfiles();
-const active=getActiveProfile();
-const box=document.getElementById("profilesList");
-box.innerHTML=profiles.map(p=>
-'<div class="profileCard '+(p.id===active.id?'activeProfile':'')+'" onclick="switchProfile(\''+p.id+'\')">'+
-'<div class="profileAvatar" style="background:'+p.color+'">'+p.name.substring(0,2).toUpperCase()+'</div>'+
-'<div class="profileName">'+safe(p.name)+'</div>'+
-(profiles.length>1?'<button class="profileDelete" onclick="deleteProfile(\''+p.id+'\',event)">✕</button>':'')+
-'</div>'
-).join("");
-}
-
-// --- API FETCH WITH OMDB FAILOVER ---
 async function api(path){
 try{
-const r=await fetch(TMDB+path,{
-headers:{
-Authorization:"Bearer "+TMDB_TOKEN,
-"Content-Type":"application/json"
-}
-});
-if(!r.ok)throw new Error("TMDB HTTP "+r.status);
-return await r.json();
-}catch(err){
-console.warn("TMDB API failed. Attempting failover to OMDb...", err);
-return await apiFailoverOMDb(path);
-}
-}
-
-async function apiFailoverOMDb(path){
+const data=await tmdbApi(path);
+state.apiSource="TMDB";
+return data;
+}catch(tmdbError){
+console.warn("TMDB failed, using Watchmode fallback:",tmdbError);
 try{
-let query="Marvel";
-if(path.includes("query="))query=decodeURIComponent(path.split("query=")[1].split("&")[0]);
-const r=await fetch(OMDB+"?apikey="+OMDB_API_KEY+"&s="+encodeURIComponent(query));
-const data=await r.json();
-if(data.Response==="True"){
-return {
-results: data.Search.map(x=>({
-id: x.imdbID,
-title: x.Title,
-name: x.Title,
-poster_path: null,
-poster_fallback: x.Poster!=="N/A"?x.Poster:"",
-release_date: x.Year,
-vote_average: 7.5,
-media_type: x.Type==="series"?"tv":"movie",
-overview: "Loaded via Secondary OMDb Backup Service."
-})),
-total_pages: 1
-};
+const data=await watchmodeFallback(path);
+state.apiSource="Watchmode";
+return data;
+}catch(wmError){
+console.error("Both metadata APIs failed",{tmdbError,wmError});
+throw wmError;
 }
-throw new Error(data.Error||"OMDb Error");
-}catch(e){
-console.error("Secondary API Backup failed:", e);
-throw e;
 }
 }
 
@@ -530,7 +551,7 @@ function card(item){
 const key=register(item);
 const title=item.title||item.name||"Unknown";
 const date=item.release_date||item.first_air_date||"";
-const poster=item.poster_path?IMG+item.poster_path:(item.poster_fallback||"");
+const poster=item.poster_path?(String(item.poster_path).startsWith("http")?item.poster_path:IMG+item.poster_path):"";
 return '<article class="card" onclick="openDetails(\''+key+'\')">'+
 (poster?'<img class="poster" src="'+poster+'" loading="lazy" alt="'+safe(title)+'">':'<div class="poster"></div>')+
 '<div class="cardOverlay"><button class="quickPlay" onclick="event.stopPropagation();quickPlay(\''+key+'\')">▶</button></div>'+
@@ -552,6 +573,7 @@ if(!el)return;
 if(totalPages<=1){ el.innerHTML=""; return; }
 
 let html='<button class="pageBtn" '+(currentPage===1?'disabled':'')+' onclick="'+onSelectFn+'('+(currentPage-1)+')">‹ Prev</button>';
+
 let startPage=Math.max(1, currentPage - 2);
 let endPage=Math.min(totalPages, currentPage + 2);
 
@@ -582,21 +604,75 @@ clearTimeout(toastTimer);
 toastTimer=setTimeout(()=>el.classList.remove("show"),2200);
 }
 
-// PROFILE PERSISTENT DATA
-function getList(){
-try{return JSON.parse(localStorage.getItem("localstream_list_"+state.activeProfileId)||"[]")}catch{return[]}
+function loadProfiles(){
+try{
+const p=JSON.parse(localStorage.getItem("localstream_profiles")||"[]");
+if(Array.isArray(p)&&p.length)return p;
+}catch{}
+const first=[{id:"p_"+Date.now(),name:"Profile 1",emoji:"▶"}];
+localStorage.setItem("localstream_profiles",JSON.stringify(first));
+return first;
 }
 
-function setList(v){
-localStorage.setItem("localstream_list_"+state.activeProfileId,JSON.stringify(v));
+function saveProfiles(v){localStorage.setItem("localstream_profiles",JSON.stringify(v));}
+function getCurrentProfileId(){
+const profiles=loadProfiles();
+let id=localStorage.getItem("localstream_current_profile");
+if(!profiles.some(p=>p.id===id)){id=profiles[0].id;localStorage.setItem("localstream_current_profile",id);}
+return id;
 }
+function currentProfile(){return loadProfiles().find(p=>p.id===getCurrentProfileId())||loadProfiles()[0];}
+function pkey(name){return "localstream_"+getCurrentProfileId()+"_"+name;}
+function getProfileArray(name){try{return JSON.parse(localStorage.getItem(pkey(name))||"[]")}catch{return[]}}
+function setProfileArray(name,v){localStorage.setItem(pkey(name),JSON.stringify(v));}
+function getList(){return getProfileArray("list");}
+function setList(v){setProfileArray("list",v);}
+function getContinue(){return getProfileArray("continue");}
+function setContinue(v){setProfileArray("continue",v);}
+function getHistory(){return getProfileArray("history");}
+function setHistory(v){setProfileArray("history",v);}
 
-function getContinue(){
-try{return JSON.parse(localStorage.getItem("localstream_continue_"+state.activeProfileId)||"[]")}catch{return[]}
+function profileInitials(name){return String(name||"P").trim().split(/\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase();}
+function updateProfileButton(){
+const p=currentProfile();
+const b=document.getElementById("profileButton");
+if(b){b.textContent=profileInitials(p.name);b.title="Profile: "+p.name+" • click to switch";}
 }
-
-function setContinue(v){
-localStorage.setItem("localstream_continue_"+state.activeProfileId,JSON.stringify(v));
+function renderProfiles(){
+const profiles=loadProfiles(), current=getCurrentProfileId();
+const grid=document.getElementById("profileGrid");
+if(!grid)return;
+grid.innerHTML=profiles.map((p,i)=>'<button class="profileCard" onclick="switchProfile(\''+p.id+'\')"><div class="profileFace">'+safe(p.emoji||profileInitials(p.name))+'</div><div class="profileName">'+safe(p.name)+'</div>'+(p.id===current?'<div class="profileActiveBadge">CURRENT</div>':'')+'</button>').join("");
+}
+function openProfiles(){renderProfiles();document.getElementById("profileOverlay").classList.add("active");}
+function closeProfiles(){document.getElementById("profileOverlay").classList.remove("active");}
+function addProfile(){
+const input=document.getElementById("newProfileName");
+const name=(input.value||"").trim();
+if(!name)return toast("Enter a profile name");
+const profiles=loadProfiles();
+if(profiles.length>=5)return toast("Maximum 5 profiles");
+profiles.push({id:"p_"+Date.now()+"_"+Math.random().toString(36).slice(2,7),name,emoji:["▶","★","◆","●","▲"][profiles.length%5]});
+saveProfiles(profiles);input.value="";renderProfiles();toast("Profile created");
+}
+function switchProfile(id){
+if(!loadProfiles().some(p=>p.id===id))return;
+localStorage.setItem("localstream_current_profile",id);
+updateProfileButton();closeProfiles();
+renderContinue();renderMyList();renderHistory();
+if(state.page==="history")navigate("history"); else if(state.page==="mylist")navigate("mylist"); else navigate("home");
+toast("Switched to "+currentProfile().name);
+}
+function deleteCurrentProfile(){
+let profiles=loadProfiles();
+if(profiles.length<=1)return toast("You need at least one profile");
+const id=getCurrentProfileId();
+const name=currentProfile().name;
+profiles=profiles.filter(p=>p.id!==id);
+saveProfiles(profiles);
+["list","continue","history"].forEach(k=>localStorage.removeItem("localstream_"+id+"_"+k));
+localStorage.setItem("localstream_current_profile",profiles[0].id);
+updateProfileButton();renderProfiles();renderContinue();renderMyList();renderHistory();toast(name+" deleted");
 }
 
 function navigate(page){
@@ -604,6 +680,7 @@ state.details=null;
 const d=document.getElementById("detailsView");
 d.classList.remove("active");
 d.style.display="none";
+d.innerHTML='<button class="backButton" onclick="closeDetails()">← Back</button><div id="detailsContent"></div>';
 
 document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
 const target=document.getElementById("page-"+page);
@@ -626,6 +703,7 @@ const item=state.catalog.get(key);
 if(!item)return toast("Title unavailable");
 
 document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+
 const details=document.getElementById("detailsView");
 details.classList.remove("active");
 details.style.display="none";
@@ -636,8 +714,8 @@ const data=await api("/"+type+"/"+item.id+"?language=en-US");
 state.details={...data,media_type:type};
 
 const title=data.title||data.name||"Unknown";
-const poster=data.poster_path?IMG+data.poster_path:"";
-const backdrop=data.backdrop_path?BACKDROP+data.backdrop_path:"";
+const poster=data.poster_path?(String(data.poster_path).startsWith("http")?data.poster_path:IMG+data.poster_path):"";
+const backdrop=data.backdrop_path?(String(data.backdrop_path).startsWith("http")?data.backdrop_path:BACKDROP+data.backdrop_path):"";
 const date=data.release_date||data.first_air_date||"";
 const saved=isSaved(data,type);
 
@@ -725,23 +803,7 @@ return;
 render("myListGrid",list);
 }
 
-function renderHistory(){
-const list=getContinue();
-if(!list.length){
-document.getElementById("historyGrid").innerHTML='<div class="empty">Your history is clear.<br><br>Watched movies and shows will appear here.</div>';
-return;
-}
-render("historyGrid",list.map(x=>({
-id:x.id,
-title:x.title,
-name:x.media_type==="tv"?x.title:undefined,
-poster_path:x.poster_path,
-media_type:x.media_type
-})));
-}
-
 function rememberWatching(data){
-const list=getContinue();
 const entry={
 id:data.id,
 title:data.title,
@@ -751,10 +813,16 @@ season:data.season,
 episode:data.episode,
 time:Date.now()
 };
-const filtered=list.filter(x=>!(x.id===entry.id&&x.media_type===entry.media_type&&(entry.media_type!=="tv"||x.season===entry.season&&x.episode===entry.episode)));
-filtered.unshift(entry);
-setContinue(filtered);
+
+const cont=getContinue().filter(x=>!(x.id===entry.id&&x.media_type===entry.media_type));
+cont.unshift(entry);
+setContinue(cont.slice(0,100));
+
+const history=getHistory();
+history.unshift({...entry,watch_id:"w_"+Date.now()+"_"+Math.random().toString(36).slice(2,7)});
+setHistory(history.slice(0,1000));
 renderContinue();
+renderHistory();
 }
 
 function renderContinue(){
@@ -763,13 +831,29 @@ if(!list.length){
 document.getElementById("continueGrid").innerHTML='<div class="empty">Nothing here yet.<br><br>Start watching something and it will appear here.</div>';
 return;
 }
-render("continueGrid",list.slice(0,6).map(x=>({
-id:x.id,
-title:x.title,
-name:x.media_type==="tv"?x.title:undefined,
-poster_path:x.poster_path,
-media_type:x.media_type
-})));
+render("continueGrid",list.slice(0,6).map(x=>({id:x.id,title:x.title,name:x.media_type==="tv"?x.title:undefined,poster_path:x.poster_path,media_type:x.media_type})));
+}
+
+function renderHistory(){
+const grid=document.getElementById("historyGrid");
+if(!grid)return;
+const list=getHistory();
+const sub=document.getElementById("historySubtitle");
+if(sub)sub.textContent="Everything watched by "+currentProfile().name+" • "+list.length+" entries";
+if(!list.length){grid.innerHTML='<div class="empty">No watch history on this profile yet.</div>';return;}
+grid.innerHTML=list.map((x,i)=>{
+const poster=x.poster_path?(String(x.poster_path).startsWith("http")?x.poster_path:IMG+x.poster_path):"";
+const when=new Date(x.time).toLocaleString();
+const ep=x.media_type==="tv"&&x.season?"S"+x.season+" E"+x.episode:"Movie";
+return '<article class="card" onclick="openHistoryItem('+i+')">'+(poster?'<img class="poster" src="'+poster+'" loading="lazy" alt="'+safe(x.title)+'">':'<div class="poster"></div>')+'<div class="cardInfo"><div class="cardTitle">'+safe(x.title||"Unknown")+'</div><div class="historyMeta">'+safe(ep)+'<br>'+safe(when)+'</div></div></article>';
+}).join("");
+}
+
+function openHistoryItem(index){
+const x=getHistory()[index];
+if(!x)return;
+const item={id:x.id,title:x.media_type==="movie"?x.title:undefined,name:x.media_type==="tv"?x.title:undefined,poster_path:x.poster_path,media_type:x.media_type};
+const key=register(item);openDetails(key);
 }
 
 function playMovie(item){
@@ -846,7 +930,7 @@ clearInterval(state.heroTimer);
 function update(){
 const item=items[index];
 state.hero=item;
-document.getElementById("heroImage").src=item.backdrop_path?BACKDROP+item.backdrop_path:"";
+document.getElementById("heroImage").src=item.backdrop_path?(String(item.backdrop_path).startsWith("http")?item.backdrop_path:BACKDROP+item.backdrop_path):(item.poster_path?(String(item.poster_path).startsWith("http")?item.poster_path:IMG+item.poster_path):"");
 document.getElementById("heroTitle").textContent=item.title||item.name||"Featured";
 document.getElementById("heroDescription").textContent=item.overview||"Discover something new.";
 const date=item.release_date||item.first_air_date||"";
@@ -904,9 +988,11 @@ state.moviePage = requestedPage;
 grid.innerHTML='<div class="empty">Loading movies...</div>';
 try{
 let data=await api(buildDiscover("movie", requestedPage, true));
+
 if((!data.results || data.results.length === 0) && state.provider){
 data=await api(buildDiscover("movie", requestedPage, false));
 }
+
 const items=quality(data.results||[]);
 state.movieTotalPages=Math.min(data.total_pages||1, 500);
 
@@ -931,9 +1017,11 @@ state.tvPage = requestedPage;
 grid.innerHTML='<div class="empty">Loading TV shows...</div>';
 try{
 let data=await api(buildDiscover("tv", requestedPage, true));
+
 if((!data.results || data.results.length === 0) && state.provider){
 data=await api(buildDiscover("tv", requestedPage, false));
 }
+
 const items=quality(data.results||[]);
 state.tvTotalPages=Math.min(data.total_pages||1, 500);
 
@@ -1041,7 +1129,7 @@ return;
 }
 
 container.innerHTML=episodes.map(e=>{
-const image=e.still_path?IMG+e.still_path:"";
+const image=e.still_path?(String(e.still_path).startsWith("http")?e.still_path:IMG+e.still_path):"";
 return '<div class="episode" onclick="playEpisode('+id+','+season+','+e.episode_number+')">'+
 (image?'<img class="episodeImage" src="'+image+'">':'<div class="episodeImage"></div>')+
 '<div><div class="episodeName">'+safe(e.name||"Episode "+e.episode_number)+'</div>'+
@@ -1059,13 +1147,21 @@ if(state.details)playTV(state.details,season,episode);
 
 document.addEventListener("keydown",e=>{
 if(e.key==="Escape"){
-if(document.getElementById("profilesModal").classList.contains("active"))closeProfilesModal();
-else if(document.getElementById("player").classList.contains("active"))closePlayer();
+if(document.getElementById("player").classList.contains("active"))closePlayer();
 else if(state.details)closeDetails();
 }
 });
 
-updateProfileAvatar();
+// One-time migration: move old single-profile data into the first profile.
+(function migrateOldStorage(){
+const id=getCurrentProfileId();
+[["localstream_list","list"],["localstream_continue","continue"]].forEach(([oldKey,newKey])=>{
+if(!localStorage.getItem("localstream_"+id+"_"+newKey)&&localStorage.getItem(oldKey)){
+localStorage.setItem("localstream_"+id+"_"+newKey,localStorage.getItem(oldKey));
+}
+});
+})();
+updateProfileButton();
 loadHome();
 </script>
 </body>
