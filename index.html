@@ -17,19 +17,20 @@ button:active{transform:scale(.97)}
 ::-webkit-scrollbar-thumb{background:#292d38;border-radius:20px}
 
 .nav{position:sticky;top:0;z-index:1000;height:70px;display:flex;align-items:center;padding:0 30px;background:rgba(6,7,11,.84);backdrop-filter:blur(25px);border-bottom:1px solid var(--border)}
-.logo{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:900;letter-spacing:-.5px}
+.logo{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:900;letter-spacing:-.5px;cursor:pointer}
 .logoIcon{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 10px 30px rgba(103,92,255,.3)}
 .navLinks{display:flex;gap:3px;margin-left:32px}
 .navButton{position:relative;border:0;padding:10px 13px;border-radius:9px;background:transparent;color:#737b8d;font-size:12px;font-weight:750;transition:.2s}
 .navButton:hover{background:rgba(255,255,255,.045);color:white}
 .navButton.active{background:rgba(103,92,255,.14);color:white}
 .navButton.active:after{content:"";position:absolute;bottom:3px;left:50%;width:18px;height:2px;transform:translateX(-50%);border-radius:5px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
-.navRight{margin-left:auto;display:flex;align-items:center;gap:10px}
+.navRight{margin-left:auto;display:flex;align-items:center;gap:12px}
 .miniSearch{width:215px;height:38px;display:flex;align-items:center;padding:0 11px;border:1px solid var(--border);border-radius:10px;background:#10121a}
 .miniSearch:focus-within{border-color:rgba(103,92,255,.65);box-shadow:0 0 0 3px rgba(103,92,255,.1)}
 .miniSearch span{color:#71798a;margin-right:8px}
 .miniSearch input{width:100%;border:0;outline:0;background:transparent;color:white;font-size:11px}
-.avatar{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,#252936,#14161d);font-size:11px;font-weight:850}
+.avatar{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,#675cff,#9a63ff);font-size:12px;font-weight:850;cursor:pointer;transition:.2s;box-shadow:0 4px 15px rgba(0,0,0,.3)}
+.avatar:hover{transform:scale(1.08)}
 
 .app{width:min(1280px,calc(100% - 48px));margin:auto;padding-bottom:100px}
 .page{display:none;padding-top:26px}
@@ -63,18 +64,9 @@ button:active{transform:scale(.97)}
 .grid.anim-prev{animation:gridPagePrev .35s cubic-bezier(.2,.8,.2,1)}
 .grid.anim-fade{animation:gridFadeIn .3s ease-out}
 
-@keyframes gridPageNext{
-from{opacity:0;transform:translateX(35px) scale(.98)}
-to{opacity:1;transform:translateX(0) scale(1)}
-}
-@keyframes gridPagePrev{
-from{opacity:0;transform:translateX(-35px) scale(.98)}
-to{opacity:1;transform:translateX(0) scale(1)}
-}
-@keyframes gridFadeIn{
-from{opacity:0;transform:translateY(15px)}
-to{opacity:1;transform:translateY(0)}
-}
+@keyframes gridPageNext{from{opacity:0;transform:translateX(35px) scale(.98)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes gridPagePrev{from{opacity:0;transform:translateX(-35px) scale(.98)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes gridFadeIn{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
 
 .card{position:relative;min-width:0;overflow:hidden;border:1px solid var(--border);border-radius:13px;background:linear-gradient(180deg,#11141c,#0d0f15);cursor:pointer;transition:.25s}
 .card:hover{transform:translateY(-7px) scale(1.012);border-color:rgba(255,255,255,.16);box-shadow:0 18px 42px rgba(0,0,0,.38)}
@@ -146,6 +138,25 @@ to{opacity:1;transform:translateY(0)}
 .playerFullscreen{margin-left:auto;border:1px solid var(--border);border-radius:9px;padding:8px 12px;background:#171a22;color:white;font-size:11px}
 .playerFrame{position:absolute;left:0;top:62px;width:100%;height:calc(100% - 62px);border:0;background:#000}
 
+/* Profiles Modal */
+.modalOverlay{position:fixed;inset:0;z-index:9000;display:none;place-items:center;background:rgba(4,5,8,.85);backdrop-filter:blur(15px);opacity:0;transition:.25s}
+.modalOverlay.active{display:grid;opacity:1}
+.profilesBox{width:min(520px,90%);padding:35px;border:1px solid var(--border);border-radius:22px;background:#0d0f15;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,.6)}
+.profilesTitle{font-size:26px;font-weight:900;letter-spacing:-1px}
+.profilesSub{margin-top:6px;color:#757d90;font-size:12px;margin-bottom:28px}
+.profilesList{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-bottom:25px}
+.profileCard{display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;position:relative}
+.profileAvatar{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;font-size:20px;font-weight:900;box-shadow:0 8px 24px rgba(0,0,0,.4);transition:.25s;border:2px solid transparent}
+.profileCard:hover .profileAvatar{transform:scale(1.08);border-color:white}
+.profileCard.activeProfile .profileAvatar{border-color:var(--accent2);box-shadow:0 0 20px var(--accent)}
+.profileName{font-size:12px;font-weight:750;color:#9ca4b5}
+.profileCard.activeProfile .profileName{color:white}
+.profileDelete{position:absolute;top:-4px;right:-4px;width:20px;height:20px;border-radius:50%;background:#ff4757;color:white;border:0;font-size:10px;display:none;place-items:center}
+.profileCard:hover .profileDelete{display:grid}
+
+.addProfileRow{display:flex;gap:8px;margin-top:20px;justify-content:center}
+.addProfileRow input{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#11141c;color:white;font-size:12px;outline:0}
+
 .toast{position:fixed;right:24px;bottom:24px;z-index:8000;padding:12px 16px;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(20,22,30,.96);box-shadow:0 15px 45px rgba(0,0,0,.4);font-size:11px;font-weight:750;transform:translateY(20px);opacity:0;pointer-events:none;transition:.25s}
 .toast.show{opacity:1;transform:none}
 
@@ -157,17 +168,18 @@ to{opacity:1;transform:translateY(0)}
 <body>
 
 <nav class="nav">
-<div class="logo"><div class="logoIcon">▶</div>LocalStream</div>
+<div class="logo" onclick="navigate('home')"><div class="logoIcon">▶</div>LocalStream</div>
 <div class="navLinks">
 <button class="navButton active" data-page="home">Home</button>
 <button class="navButton" data-page="movies">Movies</button>
 <button class="navButton" data-page="tv">TV Shows</button>
 <button class="navButton" data-page="mylist">My List</button>
+<button class="navButton" data-page="history">History</button>
 <button class="navButton" data-page="search">Search</button>
 </div>
 <div class="navRight">
 <div class="miniSearch"><span>⌕</span><input id="miniSearch" placeholder="Search..."></div>
-<div class="avatar">LS</div>
+<div id="navAvatar" class="avatar" onclick="openProfilesModal()">LS</div>
 </div>
 </nav>
 
@@ -189,7 +201,7 @@ to{opacity:1;transform:translateY(0)}
 </div>
 </div>
 
-<section class="section"><div class="sectionHeader"><h2>▶ Continue Watching</h2><button onclick="navigate('mylist')">View all →</button></div><div id="continueGrid" class="grid"></div></section>
+<section class="section"><div class="sectionHeader"><h2>▶ Continue Watching</h2><button onclick="navigate('history')">View all →</button></div><div id="continueGrid" class="grid"></div></section>
 <section class="section"><div class="sectionHeader"><h2>🔥 Trending Today</h2><button onclick="navigate('search')">Explore →</button></div><div id="trendingGrid" class="grid"></div></section>
 <section class="section"><div class="sectionHeader"><h2>⭐ Highest Rated</h2></div><div id="topGrid" class="grid"></div></section>
 <section class="section"><div class="sectionHeader"><h2>🎬 Popular Movies</h2></div><div id="movieHomeGrid" class="grid"></div></section>
@@ -279,6 +291,12 @@ to{opacity:1;transform:translateY(0)}
 <div id="myListGrid" class="grid"></div>
 </section>
 
+<section id="page-history" class="page">
+<div class="pageTitle">Watch History</div>
+<div class="pageSubtitle">All movies and episodes you have previously watched.</div>
+<div id="historyGrid" class="grid"></div>
+</section>
+
 <section id="page-search" class="page">
 <div class="pageTitle">Search</div>
 <div class="pageSubtitle">Search movies and TV shows.</div>
@@ -302,12 +320,29 @@ to{opacity:1;transform:translateY(0)}
 <iframe id="playerFrame" class="playerFrame" allowfullscreen></iframe>
 </div>
 
+<!-- Profiles Modal -->
+<div id="profilesModal" class="modalOverlay">
+<div class="profilesBox">
+<div class="profilesTitle">Who's Watching?</div>
+<div class="profilesSub">Switch profile to view personalized watch lists and history.</div>
+<div id="profilesList" class="profilesList"></div>
+<div class="addProfileRow">
+<input id="newProfileName" placeholder="New Profile Name..." maxlength="12">
+<button class="primary" onclick="createProfile()">Add Profile</button>
+</div>
+<br>
+<button class="secondary" onclick="closeProfilesModal()">Done</button>
+</div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script>
 const TMDB_TOKEN="eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIwNTVlMDhhMjQ0ZDZhYWNiZTQ0ZDQ0NWUyMDgwNDkxYSIsIm5iZiI6MTc4Nzk0NDE1NC4wNTIsInN1YiI6IjZhOTFkY2RhNjBlZWMyMjMyYjc5M2Q1NyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.Er0w7FeMJe-RBp0qm50EjIkkxUWMhpE-jsORYXNv4jw";
 const CODESPECTERS_KEY="nx_04f76a6ae447411da6b46dd5562ae444";
+const OMDB_API_KEY="trilogy"; // Secondary API key for failover
 const TMDB="https://api.themoviedb.org/3";
+const OMDB="https://www.omdbapi.com/";
 const IMG="https://image.tmdb.org/t/p/w500";
 const BACKDROP="https://image.tmdb.org/t/p/w1280";
 const REGION="IN";
@@ -323,18 +358,150 @@ heroTimer:null,
 moviePage:1,
 movieTotalPages:1,
 tvPage:1,
-tvTotalPages:1
+tvTotalPages:1,
+activeProfileId:"profile_default"
 };
 
+// --- MULTI-PROFILE LOGIC ---
+const DEFAULT_PROFILES=[
+{id:"profile_default", name:"Main", color:"linear-gradient(135deg,#675cff,#9a63ff)"},
+{id:"profile_kids", name:"Kids", color:"linear-gradient(135deg,#ff4757,#ff6b81)"}
+];
+
+function getProfiles(){
+try{
+const p=JSON.parse(localStorage.getItem("localstream_profiles"));
+return p && p.length ? p : DEFAULT_PROFILES;
+}catch{
+return DEFAULT_PROFILES;
+}
+}
+
+function setProfiles(profiles){
+localStorage.setItem("localstream_profiles",JSON.stringify(profiles));
+}
+
+function getActiveProfile(){
+const profiles=getProfiles();
+const savedId=localStorage.getItem("localstream_active_profile");
+const found=profiles.find(x=>x.id===savedId);
+return found||profiles[0];
+}
+
+function switchProfile(id){
+state.activeProfileId=id;
+localStorage.setItem("localstream_active_profile",id);
+updateProfileAvatar();
+renderProfilesList();
+renderContinue();
+if(state.page==="mylist")renderMyList();
+if(state.page==="history")renderHistory();
+toast("Switched profile to "+getActiveProfile().name);
+closeProfilesModal();
+}
+
+function createProfile(){
+const input=document.getElementById("newProfileName");
+const name=(input.value||"").trim();
+if(!name)return toast("Enter a profile name");
+const profiles=getProfiles();
+const colors=["linear-gradient(135deg,#2ed573,#1e90ff)","linear-gradient(135deg,#ffa500,#ff4757)","linear-gradient(135deg,#eccc68,#ff7f50)"];
+const newProf={
+id:"profile_"+Date.now(),
+name:name,
+color:colors[profiles.length % colors.length]
+};
+profiles.push(newProf);
+setProfiles(profiles);
+input.value="";
+switchProfile(newProf.id);
+}
+
+function deleteProfile(id, event){
+event.stopPropagation();
+let profiles=getProfiles();
+if(profiles.length<=1)return toast("Cannot delete only profile");
+profiles=profiles.filter(x=>x.id!==id);
+setProfiles(profiles);
+if(state.activeProfileId===id)switchProfile(profiles[0].id);
+else renderProfilesList();
+}
+
+function updateProfileAvatar(){
+const prof=getActiveProfile();
+state.activeProfileId=prof.id;
+const avatar=document.getElementById("navAvatar");
+avatar.textContent=prof.name.substring(0,2).toUpperCase();
+avatar.style.background=prof.color;
+}
+
+function openProfilesModal(){
+renderProfilesList();
+const m=document.getElementById("profilesModal");
+m.classList.add("active");
+}
+
+function closeProfilesModal(){
+document.getElementById("profilesModal").classList.remove("active");
+}
+
+function renderProfilesList(){
+const profiles=getProfiles();
+const active=getActiveProfile();
+const box=document.getElementById("profilesList");
+box.innerHTML=profiles.map(p=>
+'<div class="profileCard '+(p.id===active.id?'activeProfile':'')+'" onclick="switchProfile(\''+p.id+'\')">'+
+'<div class="profileAvatar" style="background:'+p.color+'">'+p.name.substring(0,2).toUpperCase()+'</div>'+
+'<div class="profileName">'+safe(p.name)+'</div>'+
+(profiles.length>1?'<button class="profileDelete" onclick="deleteProfile(\''+p.id+'\',event)">✕</button>':'')+
+'</div>'
+).join("");
+}
+
+// --- API FETCH WITH OMDB FAILOVER ---
 async function api(path){
+try{
 const r=await fetch(TMDB+path,{
 headers:{
 Authorization:"Bearer "+TMDB_TOKEN,
 "Content-Type":"application/json"
 }
 });
-if(!r.ok)throw new Error("TMDB "+r.status);
-return r.json();
+if(!r.ok)throw new Error("TMDB HTTP "+r.status);
+return await r.json();
+}catch(err){
+console.warn("TMDB API failed. Attempting failover to OMDb...", err);
+return await apiFailoverOMDb(path);
+}
+}
+
+async function apiFailoverOMDb(path){
+try{
+let query="Marvel";
+if(path.includes("query="))query=decodeURIComponent(path.split("query=")[1].split("&")[0]);
+const r=await fetch(OMDB+"?apikey="+OMDB_API_KEY+"&s="+encodeURIComponent(query));
+const data=await r.json();
+if(data.Response==="True"){
+return {
+results: data.Search.map(x=>({
+id: x.imdbID,
+title: x.Title,
+name: x.Title,
+poster_path: null,
+poster_fallback: x.Poster!=="N/A"?x.Poster:"",
+release_date: x.Year,
+vote_average: 7.5,
+media_type: x.Type==="series"?"tv":"movie",
+overview: "Loaded via Secondary OMDb Backup Service."
+})),
+total_pages: 1
+};
+}
+throw new Error(data.Error||"OMDb Error");
+}catch(e){
+console.error("Secondary API Backup failed:", e);
+throw e;
+}
 }
 
 function safe(v){
@@ -363,7 +530,7 @@ function card(item){
 const key=register(item);
 const title=item.title||item.name||"Unknown";
 const date=item.release_date||item.first_air_date||"";
-const poster=item.poster_path?IMG+item.poster_path:"";
+const poster=item.poster_path?IMG+item.poster_path:(item.poster_fallback||"");
 return '<article class="card" onclick="openDetails(\''+key+'\')">'+
 (poster?'<img class="poster" src="'+poster+'" loading="lazy" alt="'+safe(title)+'">':'<div class="poster"></div>')+
 '<div class="cardOverlay"><button class="quickPlay" onclick="event.stopPropagation();quickPlay(\''+key+'\')">▶</button></div>'+
@@ -385,7 +552,6 @@ if(!el)return;
 if(totalPages<=1){ el.innerHTML=""; return; }
 
 let html='<button class="pageBtn" '+(currentPage===1?'disabled':'')+' onclick="'+onSelectFn+'('+(currentPage-1)+')">‹ Prev</button>';
-
 let startPage=Math.max(1, currentPage - 2);
 let endPage=Math.min(totalPages, currentPage + 2);
 
@@ -416,20 +582,21 @@ clearTimeout(toastTimer);
 toastTimer=setTimeout(()=>el.classList.remove("show"),2200);
 }
 
+// PROFILE PERSISTENT DATA
 function getList(){
-try{return JSON.parse(localStorage.getItem("localstream_list")||"[]")}catch{return[]}
+try{return JSON.parse(localStorage.getItem("localstream_list_"+state.activeProfileId)||"[]")}catch{return[]}
 }
 
 function setList(v){
-localStorage.setItem("localstream_list",JSON.stringify(v));
+localStorage.setItem("localstream_list_"+state.activeProfileId,JSON.stringify(v));
 }
 
 function getContinue(){
-try{return JSON.parse(localStorage.getItem("localstream_continue")||"[]")}catch{return[]}
+try{return JSON.parse(localStorage.getItem("localstream_continue_"+state.activeProfileId)||"[]")}catch{return[]}
 }
 
 function setContinue(v){
-localStorage.setItem("localstream_continue",JSON.stringify(v));
+localStorage.setItem("localstream_continue_"+state.activeProfileId,JSON.stringify(v));
 }
 
 function navigate(page){
@@ -437,7 +604,6 @@ state.details=null;
 const d=document.getElementById("detailsView");
 d.classList.remove("active");
 d.style.display="none";
-d.innerHTML='<button class="backButton" onclick="closeDetails()">← Back</button><div id="detailsContent"></div>';
 
 document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
 const target=document.getElementById("page-"+page);
@@ -450,6 +616,7 @@ document.querySelectorAll(".navButton").forEach(x=>x.classList.toggle("active",x
 if(page==="movies")loadMovies(1);
 if(page==="tv")loadTV(1);
 if(page==="mylist")renderMyList();
+if(page==="history")renderHistory();
 
 window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -459,7 +626,6 @@ const item=state.catalog.get(key);
 if(!item)return toast("Title unavailable");
 
 document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
-
 const details=document.getElementById("detailsView");
 details.classList.remove("active");
 details.style.display="none";
@@ -559,6 +725,21 @@ return;
 render("myListGrid",list);
 }
 
+function renderHistory(){
+const list=getContinue();
+if(!list.length){
+document.getElementById("historyGrid").innerHTML='<div class="empty">Your history is clear.<br><br>Watched movies and shows will appear here.</div>';
+return;
+}
+render("historyGrid",list.map(x=>({
+id:x.id,
+title:x.title,
+name:x.media_type==="tv"?x.title:undefined,
+poster_path:x.poster_path,
+media_type:x.media_type
+})));
+}
+
 function rememberWatching(data){
 const list=getContinue();
 const entry={
@@ -572,7 +753,7 @@ time:Date.now()
 };
 const filtered=list.filter(x=>!(x.id===entry.id&&x.media_type===entry.media_type&&(entry.media_type!=="tv"||x.season===entry.season&&x.episode===entry.episode)));
 filtered.unshift(entry);
-setContinue(filtered.slice(0,20));
+setContinue(filtered);
 renderContinue();
 }
 
@@ -723,11 +904,9 @@ state.moviePage = requestedPage;
 grid.innerHTML='<div class="empty">Loading movies...</div>';
 try{
 let data=await api(buildDiscover("movie", requestedPage, true));
-
 if((!data.results || data.results.length === 0) && state.provider){
 data=await api(buildDiscover("movie", requestedPage, false));
 }
-
 const items=quality(data.results||[]);
 state.movieTotalPages=Math.min(data.total_pages||1, 500);
 
@@ -752,11 +931,9 @@ state.tvPage = requestedPage;
 grid.innerHTML='<div class="empty">Loading TV shows...</div>';
 try{
 let data=await api(buildDiscover("tv", requestedPage, true));
-
 if((!data.results || data.results.length === 0) && state.provider){
 data=await api(buildDiscover("tv", requestedPage, false));
 }
-
 const items=quality(data.results||[]);
 state.tvTotalPages=Math.min(data.total_pages||1, 500);
 
@@ -882,11 +1059,13 @@ if(state.details)playTV(state.details,season,episode);
 
 document.addEventListener("keydown",e=>{
 if(e.key==="Escape"){
-if(document.getElementById("player").classList.contains("active"))closePlayer();
+if(document.getElementById("profilesModal").classList.contains("active"))closeProfilesModal();
+else if(document.getElementById("player").classList.contains("active"))closePlayer();
 else if(state.details)closeDetails();
 }
 });
 
+updateProfileAvatar();
 loadHome();
 </script>
 </body>
