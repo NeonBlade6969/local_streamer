@@ -1322,6 +1322,155 @@ img{user-select:none}
  line-height:1.6;
 }
 
+/* ================= CUSTOM DROPDOWNS ================= */
+
+.nativeSelectHidden{
+ position:absolute!important;
+ width:1px!important;
+ height:1px!important;
+ padding:0!important;
+ margin:-1px!important;
+ overflow:hidden!important;
+ clip:rect(0,0,0,0)!important;
+ white-space:nowrap!important;
+ border:0!important;
+}
+
+.customSelect{
+ position:relative;
+ min-width:170px;
+ font-size:11px;
+}
+
+.customSelect.seasonCustom{
+ min-width:235px;
+}
+
+.customSelectButton{
+ width:100%;
+ min-height:42px;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:12px;
+ padding:10px 12px;
+ border:1px solid var(--border);
+ border-radius:10px;
+ background:linear-gradient(180deg,var(--panel2),var(--panel));
+ color:var(--text);
+ font-size:11px;
+ font-weight:800;
+ text-align:left;
+ outline:0;
+ transition:.2s;
+ box-shadow:0 8px 25px rgba(0,0,0,.08);
+}
+
+.customSelectButton:hover,
+.customSelect.open .customSelectButton{
+ border-color:var(--accent);
+ box-shadow:0 0 0 3px var(--accentGlow);
+}
+
+.customSelectArrow{
+ width:7px;
+ height:7px;
+ flex:0 0 auto;
+ border-right:2px solid var(--muted);
+ border-bottom:2px solid var(--muted);
+ transform:rotate(45deg) translateY(-2px);
+ transition:.2s;
+}
+
+.customSelect.open .customSelectArrow{
+ transform:rotate(225deg) translate(-1px,-2px);
+ border-color:var(--text);
+}
+
+.customSelectMenu{
+ position:absolute;
+ left:0;
+ right:0;
+ top:calc(100% + 7px);
+ z-index:6000;
+ max-height:280px;
+ overflow:auto;
+ padding:6px;
+ border:1px solid var(--border2);
+ border-radius:12px;
+ background:rgba(13,15,21,.97);
+ backdrop-filter:blur(22px) saturate(150%);
+ box-shadow:0 20px 55px rgba(0,0,0,.45);
+ opacity:0;
+ visibility:hidden;
+ transform:translateY(-5px) scale(.985);
+ transform-origin:top;
+ transition:.16s ease;
+}
+
+.light .customSelectMenu{
+ background:rgba(255,255,255,.97);
+}
+
+.customSelect.open .customSelectMenu{
+ opacity:1;
+ visibility:visible;
+ transform:none;
+}
+
+.customSelectOption{
+ width:100%;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:10px;
+ padding:10px 11px;
+ border:0;
+ border-radius:8px;
+ background:transparent;
+ color:var(--muted);
+ font-size:10px;
+ font-weight:800;
+ text-align:left;
+ transition:.15s;
+}
+
+.customSelectOption:hover{
+ background:rgba(255,255,255,.06);
+ color:var(--text);
+}
+
+.customSelectOption.selected{
+ background:var(--accentGlow);
+ color:var(--text);
+}
+
+.customSelectOption.selected:after{
+ content:"✓";
+ color:var(--accent);
+ font-weight:950;
+}
+
+.customSelectMenu::-webkit-scrollbar{
+ width:5px;
+}
+
+.customSelectMenu::-webkit-scrollbar-thumb{
+ background:var(--border2);
+ border-radius:99px;
+}
+
+@media(max-width:500px){
+ .customSelect,
+ .customSelect.seasonCustom{
+  min-width:0;
+  width:100%;
+ }
+ .sortRow .customSelect{
+  width:100%;
+ }
+}
+
 .metadataSource,.select{border:1px solid var(--border);border-radius:10px;background:var(--panel3);color:var(--text);padding:10px 12px;outline:0;font-size:11px;font-weight:750;min-width:220px}.metadataSource:focus,.select:focus{border-color:var(--accent)}
 .settingRow{
  display:flex;
@@ -1418,6 +1567,64 @@ img{user-select:none}
 .toggle.on i{
  transform:translateX(20px);
  background:white;
+}
+
+/* ================= CREDITS ================= */
+
+.creditsList{
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:10px;
+ margin-top:6px;
+}
+
+.creditCard{
+ display:flex;
+ align-items:center;
+ gap:13px;
+ padding:14px;
+ border:1px solid var(--border);
+ border-radius:13px;
+ background:linear-gradient(135deg,var(--panel2),var(--panel));
+ transition:.2s;
+}
+
+.creditCard:hover{
+ transform:translateY(-3px);
+ border-color:var(--border2);
+ box-shadow:0 15px 35px rgba(0,0,0,.22);
+}
+
+.creditIcon{
+ width:40px;
+ height:40px;
+ flex:0 0 40px;
+ display:grid;
+ place-items:center;
+ border-radius:11px;
+ background:linear-gradient(135deg,var(--accent),var(--accent2));
+ color:white;
+ font-size:11px;
+ font-weight:950;
+ box-shadow:0 8px 22px var(--accentGlow);
+}
+
+.creditInfo strong{
+ display:block;
+ font-size:12px;
+ font-weight:900;
+}
+
+.creditInfo span{
+ display:block;
+ margin-top:4px;
+ color:var(--muted);
+ font-size:9px;
+ line-height:1.4;
+}
+
+@media(max-width:720px){
+ .creditsList{grid-template-columns:1fr}
 }
 
 /* ================= STATS ================= */
@@ -2073,6 +2280,10 @@ img{user-select:none}
      ℹ About
     </button>
 
+    <button class="settingsTab" data-settings="credits">
+     ✦ Credits
+    </button>
+
    </div>
 
    <div class="settingsContent">
@@ -2339,6 +2550,62 @@ img{user-select:none}
        <option value="auto">Auto — TMDB</option>
        <option value="tmdb">TMDB</option>
       </select>
+
+     </div>
+
+    </div>
+
+    <!-- CREDITS -->
+
+    <div id="settings-credits" class="settingPanel">
+
+     <h3 class="settingTitle">Credits</h3>
+
+     <p class="settingDesc">
+      People, tools and services that helped make LocalStream possible.
+     </p>
+
+     <div class="creditsList">
+
+      <div class="creditCard">
+       <div class="creditIcon">A</div>
+       <div class="creditInfo">
+        <strong>Alex</strong>
+        <span>Brainstorming Idea · API · Scripting</span>
+       </div>
+      </div>
+
+      <div class="creditCard">
+       <div class="creditIcon">C</div>
+       <div class="creditInfo">
+        <strong>ChatGPT</strong>
+        <span>Scripting Assist</span>
+       </div>
+      </div>
+
+      <div class="creditCard">
+       <div class="creditIcon">G</div>
+       <div class="creditInfo">
+        <strong>Gemini</strong>
+        <span>Scripting Assist</span>
+       </div>
+      </div>
+
+      <div class="creditCard">
+       <div class="creditIcon">T</div>
+       <div class="creditInfo">
+        <strong>TMDB</strong>
+        <span>TMDB API</span>
+       </div>
+      </div>
+
+      <div class="creditCard">
+       <div class="creditIcon">CS</div>
+       <div class="creditInfo">
+        <strong>CodeSpecters</strong>
+        <span>CodeSpecters API</span>
+       </div>
+      </div>
 
      </div>
 
@@ -4292,8 +4559,10 @@ async function openDetails(key){
 
   details.classList.add("active");
 
-  if(type==="tv")
+  if(type==="tv"){
+   enhanceCustomSelects(details);
    populateSeasons(data);
+  }
 
   window.scrollTo({
    top:0,
@@ -5957,6 +6226,8 @@ function populateSeasons(show){
    `
   ).join("");
 
+ refreshCustomSelect(select);
+
  if(seasons.length)
   loadEpisodes(show.id);
 
@@ -6169,6 +6440,171 @@ async function randomFromGenre(){
  }
 
 }
+
+/* =========================================================
+   CUSTOM DROPDOWNS
+========================================================= */
+
+function closeCustomSelects(except){
+ document.querySelectorAll(".customSelect.open").forEach(w=>{
+  if(w!==except)
+   w.classList.remove("open");
+ });
+}
+
+function refreshCustomSelect(select){
+ if(!select)
+  return;
+
+ const wrap=select.closest(".customSelect");
+ if(!wrap)
+  return;
+
+ const button=wrap.querySelector(".customSelectButton");
+ const menu=wrap.querySelector(".customSelectMenu");
+
+ if(!button||!menu)
+  return;
+
+ const selected=select.options[select.selectedIndex];
+
+ const label=button.querySelector(".customSelectLabel");
+
+ if(label)
+  label.textContent=
+   selected
+    ? selected.textContent.trim()
+    : "Select...";
+
+ menu.innerHTML=
+  [...select.options]
+   .map(
+    (option,index)=>`
+     <button
+      type="button"
+      class="customSelectOption ${
+       index===select.selectedIndex
+        ?"selected"
+        :""
+      }"
+      data-index="${index}">
+      <span>${safe(option.textContent.trim())}</span>
+     </button>
+    `
+   ).join("");
+
+ menu.querySelectorAll(".customSelectOption")
+  .forEach(optionButton=>{
+   optionButton.addEventListener(
+    "click",
+    ()=>{
+     const index=
+      Number(optionButton.dataset.index);
+
+     select.selectedIndex=index;
+
+     select.dispatchEvent(
+      new Event("change",{bubbles:true})
+     );
+
+     refreshCustomSelect(select);
+
+     wrap.classList.remove("open");
+    }
+   );
+  });
+}
+
+function enhanceCustomSelect(select){
+ if(!select||select.dataset.customized==="true")
+  return;
+
+ const wrap=
+  document.createElement("div");
+
+ wrap.className="customSelect";
+
+ if(select.classList.contains("seasonSelect"))
+  wrap.classList.add("seasonCustom");
+
+ select.parentNode.insertBefore(
+  wrap,
+  select
+ );
+
+ wrap.appendChild(select);
+
+ select.dataset.customized="true";
+ select.classList.add("nativeSelectHidden");
+
+ const button=
+  document.createElement("button");
+
+ button.type="button";
+ button.className="customSelectButton";
+
+ button.innerHTML=`
+  <span class="customSelectLabel"></span>
+  <i class="customSelectArrow"></i>
+ `;
+
+ wrap.appendChild(button);
+
+ const menu=
+  document.createElement("div");
+
+ menu.className="customSelectMenu";
+
+ wrap.appendChild(menu);
+
+ button.addEventListener(
+  "click",
+  e=>{
+   e.stopPropagation();
+
+   const wasOpen=
+    wrap.classList.contains("open");
+
+   closeCustomSelects(wrap);
+
+   wrap.classList.toggle(
+    "open",
+    !wasOpen
+   );
+  }
+ );
+
+ select.addEventListener(
+  "change",
+  ()=>refreshCustomSelect(select)
+ );
+
+ refreshCustomSelect(select);
+}
+
+function enhanceCustomSelects(root=document){
+ const selects=
+  root instanceof HTMLSelectElement
+   ? [root]
+   : root.querySelectorAll("select");
+
+ selects.forEach(enhanceCustomSelect);
+}
+
+document.addEventListener(
+ "click",
+ ()=>closeCustomSelects()
+);
+
+document.addEventListener(
+ "keydown",
+ e=>{
+  if(e.key==="Escape")
+   closeCustomSelects();
+ }
+);
+
+enhanceCustomSelects();
 
 /* =========================================================
    SETTINGS MODAL
@@ -6707,4 +7143,3 @@ loadHome();
 
 </body>
 </html>
-```
