@@ -2574,6 +2574,8 @@ function toggleSetting(key){
    API
 ========================================================= */
 
+
+
 async function tmdbApi(path){
  const cacheKey="tmdb:"+path;
  const cached=getCached(cacheKey);
@@ -2586,6 +2588,23 @@ async function tmdbApi(path){
  return data;
 }
 
+async function watchmodeApi(path){
+ const r=await fetch(WATCHMODE+path,{headers:{"X-API-Key":WATCHMODE_KEY,"Content-Type":"application/json"}});
+ if(!r.ok)throw new Error("Watchmode "+r.status);
+ return r.json();
+}
+
+async function imdbApi(path){
+ const cacheKey="imdb:"+path;
+ const cached=getCached(cacheKey);
+ if(cached)return cached;
+ const r=await fetch("https://"+IMDB_RAPIDAPI_HOST+path,{headers:{"X-RapidAPI-Key":IMDB_RAPIDAPI_KEY,"X-RapidAPI-Host":IMDB_RAPIDAPI_HOST}});
+ if(!r.ok)throw new Error("IMDb/RapidAPI "+r.status);
+ const data=await r.json();
+ setCached(cacheKey,data,10*60*1000);
+ state.apiSource="IMDb";
+ return data;
+}
 
 function imdbTconst(value){
  const m=String(value||"").match(/tt\d{5,10}/i);
@@ -2601,9 +2620,132 @@ function imdbText(x){
  return "";
 }
 
+function imdbYear(x){
+ if(x==null)return "";
+ if(typeof x==="number")return String(x);
+ return String(x.year||x.value||imdbText(x)||"");
+}
 
+function imdbImage(x){
+ if(!x)return "";
+ return x.url||x.src||x.imageUrl||x.image?.url||"";
+}
 
+function imdbGenreList(x){
+ const g=x?.genres||x?.genre||[];
+ if(!Array.isArray(g))return [];
+ return g.map(v=>({id:0,name:imdbText(v)||String(v)})).filter(v=>v.name);
+}
 
+function imdbType(x){
+ const id=String(x?.id||x?.displayableProperty?.value?.id||x?.titleType?.id||x?.titleType||"").toLowerCase();
+ const text=(imdbText(x?.titleType)||imdbText(x?.titleType?.text)||"").toLowerCase();
+ if(id.includes("tv")||id.includes("series")||id.includes("episode")||text.includes("tv")||text.includes("series")||text.includes("episode"))return "tv";
+ return "movie";
+}
+
+function adaptIMDbDetail(raw,tconstHint=""){
+ const x=raw?.title||raw?.data?.title||raw;
+ const tconst=imdbTconst(tconstHint||x?.id||x?.tconst||x?.titleId);
+ const title=imdbText(x?.titleText)||imdbText(x?.title)||imdbText(x?.name)||"Unknown";
+ const type=imdbType(x);
+ const year=imdbYear(x?.releaseYear||x?.releaseDate||x?.year||x?.release_year);
+ const image=imdbImage(x?.primaryImage||x?.primary_image||x?.image);
+ const plot=imdbText(x?.plot?.plotText)||imdbText(x?.plot)||imdbText(x?.overview)||imdbText(x?.description);
+ const rating=Number(x?.ratingsSummary?.aggregateRating||x?.rating?.aggregateRating||x?.rating?.value||x?.rating||x?.userRating||0);
+ const votes=Number(x?.ratingsSummary?.voteCount||x?.rating?.voteCount||x?.votes||0);
+ const genres=imdbGenreList(x);
+ return {id:tconst||x?.id||"",imdb_id:tconst||x?.id||"",media_type:type,title:type==="movie"?title:undefined,name:type==="tv"?title:undefined,release_date:type==="movie"&&year?year+"-01-01":"",first_air_date:type==="tv"&&year?year+"-01-01":"",poster_path:image,backdrop_path:image,overview:plot,vote_average:rating,vote_count:votes,genres,seasons:[],_imdb:true};
+}
+
+function adaptIMDbAutocomplete(x){
+ const tconst=imdbTconst(x?.id||x?.tconst||x?.titleId||x?.link);
+ const title=imdbText(x?.l)||imdbText(x?.titleText)||imdbText(x?.title)||imdbText(x?.name)||"Unknown";
+ const year=imdbYear(x?.y||x?.releaseYear||x?.year);
+ const type=imdbType(x);
+ const image=imdbImage(x?.i||x?.primaryImage||x?.image);
+ return {id:tconst||x?.id||"",imdb_id:tconst||x?.id||"",media_type:type,title:type==="movie"?title:undefined,name:type==="tv"?title:undefined,release_date:type==="movie"&&year?year+"-01-01":"",first_air_date:type==="tv"&&year?year+"-01-01":"",poster_path:image,backdrop_path:image,overview:imdbText(x?.plot)||"",vote_average:0,vote_count:0,genres:[],_imdb:true};
+}
+
+async function imdbDetails(tconst){
+ const base=await imdbApi("/title/get-details?tconst="+encodeURIComponent(tconst));
+ let item=adaptIMDbDetail(base,tconst);
+ try{
+  if(!item.vote_average){const r=await imdbApi("/title/get-ratings?tconst="+encodeURIComponent(tconst));item.vote_average=Number(r?.rating||r?.aggregateRating||r?.ratingsSummary?.aggregateRating||0);item.vote_count=Number(r?.votes||r?.voteCount||r?.ratingsSummary?.voteCount||0);}
+ }catch{}
+ try{
+  if(!item.genres.length){const g=await imdbApi("/title/get-genres?tconst="+encodeURIComponent(tconst));item.genres=imdbGenreList(g);}
+ }catch{}
+ return item;
+}
+
+async function imdbFindTmdbId(tconst){
+ if(!tconst)return 0;
+ try{
+  const d=await tmdbApi("/find/"+encodeURIComponent(tconst)+"?external_source=imdb_id");
+  return Number(d?.movie_results?.[0]?.id||d?.tv_results?.[0]?.id||0);
+ }catch{return 0;}
+}
+
+async function imdbCatalog(type,page=1,sort="popularity"){
+ const endpoint=type==="movie"?"/title/get-most-popular-movies?currentCountry=US&purchaseCountry=US&homeCountry=US":"/title/get-most-popular-tv-shows?currentCountry=US&purchaseCountry=US&homeCountry=US";
+ const raw=await imdbApi(endpoint);
+ const ids=Array.isArray(raw)?raw:(raw?.results||raw?.titles||raw?.items||[]);
+ const all=ids.map(x=>imdbTconst(x?.id||x?.tconst||x)||imdbTconst(x));
+ const unique=[...new Set(all)].filter(Boolean);
+ const perPage=24;
+ const start=(Math.max(1,page)-1)*perPage;
+ const pageIds=unique.slice(start,start+perPage);
+ const results=await Promise.all(pageIds.map(async id=>{try{return await imdbDetails(id)}catch{return {id,imdb_id:id,media_type:type,title:type==="movie"?id:undefined,name:type==="tv"?id:undefined,_imdb:true}}}));
+ let filtered=results.filter(Boolean);
+ if(state.genre){
+  const wanted=String(state.genre);
+  const names={28:["action"],12:["adventure"],16:["animation"],35:["comedy"],80:["crime"],99:["documentary"],18:["drama"],10751:["family"],14:["fantasy"],27:["horror"],9648:["mystery"],10749:["romance"],878:["sci-fi","science fiction"],53:["thriller"],10752:["war"],37:["western"],10759:["action","adventure"],10765:["fantasy","sci-fi","science fiction"],10768:["war","politics"]}[wanted]||[];
+  if(names.length)filtered=filtered.filter(x=>(x.genres||[]).some(g=>names.some(n=>String(g.name).toLowerCase().includes(n))));
+ }
+ if(sort.includes("vote")||sort.includes("rating"))filtered=highestRated(filtered);
+ return {results:filtered,page,total_pages:Math.max(1,Math.ceil(unique.length/perPage)),total_results:unique.length};
+}
+
+async function imdbFallback(path){
+ const u=new URL(path,"https://fallback.local");
+ const p=u.pathname;
+ if(p==="/search/multi"){
+  const q=u.searchParams.get("query")||"";
+  const raw=await imdbApi("/title/auto-complete?q="+encodeURIComponent(q));
+  const arr=Array.isArray(raw)?raw:(raw?.d||raw?.results||raw?.titles||[]);
+  const basic=arr.map(adaptIMDbAutocomplete).filter(x=>x.id);
+  const detailed=await Promise.all(basic.slice(0,30).map(async x=>{try{return await imdbDetails(x.id)}catch{return x}}));
+  return {results:detailed};
+ }
+ const detailMatch=p.match(/^\/(movie|tv)\/(tt\d+)/i);
+ if(detailMatch&&!/\/season\//.test(p)){
+  const item=await imdbDetails(detailMatch[2]);
+  if(item.media_type!==detailMatch[1])item.media_type=detailMatch[1];
+  if(item.media_type==="tv"){
+   try{
+    const tmdbId=await imdbFindTmdbId(detailMatch[2]);
+    if(tmdbId){const d=await tmdbApi("/tv/"+tmdbId+"?language=en-US");item.seasons=(d.seasons||[]).map(s=>({season_number:s.season_number,episode_count:s.episode_count,name:s.name}));item.tmdb_id=tmdbId;}
+   }catch{}
+  }
+  return item;
+ }
+ const seasonMatch=p.match(/^\/tv\/(tt\d+)\/season\/(\d+)/i);
+ if(seasonMatch){
+  const tmdbId=await imdbFindTmdbId(seasonMatch[1]);
+  if(!tmdbId)throw new Error("IMDb title could not be mapped to TMDB for episodes");
+  return tmdbApi("/tv/"+tmdbId+"/season/"+Number(seasonMatch[2])+"?language=en-US");
+ }
+ if(p.includes("/trending/all/day")){
+  const [m,t]=await Promise.all([imdbCatalog("movie",1),imdbCatalog("tv",1)]);
+  return {results:highestRated([...(m.results||[]),...(t.results||[])])};
+ }
+ if(p.includes("/movie/top_rated"))return imdbCatalog("movie",1,"rating");
+ if(p.includes("/tv/top_rated"))return imdbCatalog("tv",1,"rating");
+ if(p.includes("/movie")||p.includes("/discover/movie"))return imdbCatalog("movie",Number(u.searchParams.get("page")||1),u.searchParams.get("sort_by")||"popularity");
+ if(p.includes("/tv")||p.includes("/discover/tv"))return imdbCatalog("tv",Number(u.searchParams.get("page")||1),u.searchParams.get("sort_by")||"popularity");
+ throw new Error("IMDb endpoint is not mapped: "+path);
+}
 
 async function api(path){
  const selected=localStorage.getItem("localstream_api_source")||"auto";
@@ -2613,17 +2755,18 @@ async function api(path){
   catch(e){console.error(selected+" failed",e);toast((selected==="imdb"?"IMDb":selected)+" failed — switch API or use Auto");throw e;}
  }
  let last;
- for(const name of ["tmdb"]){
+ for(const name of ["tmdb","imdb","watchmode"]){
   try{return await runners[name]();}
   catch(e){last=e;console.warn(name+" failed",e);}
  }
  throw last||new Error("All metadata APIs failed");
 }
 
+function isIMDbSelected(){return (localStorage.getItem("localstream_api_source")||"auto")==="imdb";}
 
 async function changeMetadataSource(value){
  localStorage.setItem("localstream_api_source",value);
- state.apiSource=value==="auto"?"Auto":value==="imdb"?"IMDb":value==="tmdb";
+ state.apiSource=value==="auto"?"Auto":value==="imdb"?"IMDb":value==="tmdb"?"TMDB":"Watchmode";
  const select=document.getElementById("metadataSource");if(select)select.value=value;
  toast("Metadata source: "+(state.apiSource));
  state.catalog.clear();
