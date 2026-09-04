@@ -2570,7 +2570,7 @@ async function jsonFetch(url, cacheKey, ttl=10*60*1000){
 
 async function cinemetaApi(path){
   const clean=String(path||"").replace(/^\/+/,"");
-  const cacheKey="cinemeta:v2:"+clean;
+  const cacheKey="cinemeta:v4:"+clean;
   let lastError=null;
   for(const base of [CINEMETA_BASE,CINEMETA_FALLBACK]){
     try{
@@ -2783,25 +2783,40 @@ function adaptOMDbDetail(raw){
   };
 }
 
-async function imdbDetails(tconst){
+async function imdbDetails(tconst,preferredTitle=""){
   const id=imdbTconst(tconst);
   if(!id)throw new Error("Invalid IMDb ID");
-  let type="movie";
-  let rawMeta=null;
+
+  /* OMDb is the identity authority here: it guarantees that an IMDb ID
+     resolves back to the exact title the user selected. Cinemeta is used
+     as a supplementary source, especially for artwork/TV metadata. */
+  let omdb=null;
+  try{ omdb=await omdbApi({i:id,plot:"full"}); }
+  catch(e){ console.warn("OMDb detail unavailable; using Cinemeta",id,e); }
+
+  const type=omdb ? omdbType(omdb.Type) : "movie";
+  let cine=null;
   try{
-    rawMeta=await cinemetaApi("meta/movie/"+id+".json");
-  }catch(_){
-    type="tv";
-    rawMeta=await cinemetaApi("meta/series/"+id+".json");
+    const rawMeta=await cinemetaApi("meta/"+(type==="tv"?"series":"movie")+"/"+id+".json");
+    cine=cinemetaDetail(rawMeta,type);
+  }catch(e){ console.warn("Cinemeta detail unavailable",id,e); }
+
+  let item=cine||{id,imdb_id:id,media_type:type};
+  if(omdb){
+    const detail=adaptOMDbDetail(omdb);
+    item={...item,...detail,
+      id,imdb_id:id,media_type:type,
+      /* Never let a secondary metadata provider replace the selected title. */
+      title:type==="movie"?(preferredTitle||detail.title||item.title):undefined,
+      name:type==="tv"?(preferredTitle||detail.name||item.name):undefined,
+      poster_path:detail.poster_path||item.poster_path,
+      backdrop_path:item.backdrop_path||detail.backdrop_path,
+      overview:detail.overview||item.overview,
+      genres:detail.genres?.length?detail.genres:item.genres||[]
+    };
   }
-  let item=cinemetaDetail(rawMeta,type);
-  if(!item||!item.id){
-    type=type==="movie"?"tv":"movie";
-    rawMeta=await cinemetaApi("meta/"+(type==="tv"?"series":"movie")+"/"+id+".json");
-    item=cinemetaDetail(rawMeta,type);
-  }
-  if(!item)throw new Error("Cinemeta returned no metadata for "+id);
-  return await enrichWithOMDb(item);
+  if(!item)throw new Error("No metadata returned for "+id);
+  return item;
 }
 
 async function cinemetaSearch(query,type,page=1){
@@ -2989,27 +3004,28 @@ async function imdbFallback(path){
     const q=u.searchParams.get("query")||"";
     const page=Number(u.searchParams.get("page")||1);
     const typeParam=(u.searchParams.get("type")||"all").toLowerCase();
-    return {page,total_pages:100,results:await imdbSearch(q,page,typeParam)};
+    return {page,total_pages:100,total_results:0,results:await imdbSearch(q,page,typeParam)};
   }
   const seasonMatch=p.match(/^\/tv\/(tt\d+)\/season\/(\d+)/i);
   if(seasonMatch){
     const id=imdbTconst(seasonMatch[1]);
-    const raw=await cinemetaApi("meta/series/"+id+".json");
-    const meta=cinemetaDetail(raw,"tv");
     const season=Number(seasonMatch[2]);
-    const videos=(meta?._videos||[]).filter(v=>Number(v?.season)===season);
-    return {
-      title:meta?.name||"",season_number:season,
-      episodes:videos.map(v=>({
-        id:id+":"+season+":"+(Number(v?.episode)||0),
-        imdb_id:id,
-        name:v?.title||("Episode "+Number(v?.episode||0)),
-        episode_number:Number(v?.episode)||0,
-        air_date:v?.released?String(v.released).slice(0,10):"",
-        vote_average:Number(v?.imdbRating||meta?.vote_average||0)||0,
-        vote_count:0,still_path:v?.thumbnail||"",overview:v?.overview||v?.description||""
-      })).filter(e=>e.episode_number>0),
-    };
+    /* OMDb's Season endpoint is much more reliable for episode lists than
+       trying to reconstruct episodes from Cinemeta's video objects. */
+    const raw=await omdbApi({i:id,Season:String(season)});
+    let title="";
+    try{ title=(await omdbApi({i:id})).Title||""; }catch(_){}
+    const episodes=Array.isArray(raw?.Episodes)?raw.Episodes.map(e=>({
+      id:id+":"+season+":"+(Number(e?.Episode)||0),
+      imdb_id:id,
+      name:e?.Title||("Episode "+Number(e?.Episode||0)),
+      episode_number:Number(e?.Episode)||0,
+      air_date:e?.Released&&e.Released!=="N/A"?String(e.Released):"",
+      vote_average:Number(e?.imdbRating&&e.imdbRating!=="N/A"?e.imdbRating:0)||0,
+      vote_count:Number(String(e?.imdbVotes||"").replace(/,/g,""))||0,
+      still_path:"",overview:""
+    })).filter(e=>e.episode_number>0):[];
+    return {title,season_number:season,episodes};
   }
   const detailMatch=p.match(/^\/(movie|tv)\/(tt\d+)/i);
   if(detailMatch&&!/\/season\//.test(p))return await imdbDetails(detailMatch[2]);
@@ -3906,6 +3922,11 @@ async function openDetails(key){
     "/"+item.id+
     "?language=en-US"
    );
+
+  if(preferredTitle){
+    if(type==="tv") data.name=preferredTitle;
+    else data.title=preferredTitle;
+  }
 
   state.details={
    ...data,
@@ -5668,644 +5689,67 @@ async function loadEpisodes(id,forcedSeason=null){
  const container=document.getElementById("episodes");
  if(!select||!container)return;
  const season=Number(forcedSeason||select.dataset.value||1);
+ const imdbId=imdbTconst(id);
  container.innerHTML='<div class="empty">Loading episodes...</div>';
- try{
-  const data=await api("/tv/"+id+"/season/"+season+"?language=en-US");
-  const episodes=(data.episodes||[]).filter(e=>Number(e.episode_number)>0);
-  if(!episodes.length){container.innerHTML='<div class="empty">No episodes found.</div>';return;}
-  container.innerHTML=episodes.map(e=>{
-   const image=posterUrl(e.still_path);
-   const ep=Number(e.episode_number)||0;
-   const eid=safe(String(id));
-   return `<div class="episode" onclick="playEpisode('${eid}',${season},${ep})">${image?`<img class="episodeImage" src="${image}" loading="lazy" alt="">`:`<div class="episodeImage"></div>`}<div><div class="episodeName">${safe(e.name||("Episode "+ep))}</div><div class="episodeMeta">Episode ${ep} • <span class="rating">★ ${Number(e.vote_average||0).toFixed(1)}</span></div></div></div>`;
-  }).join("");
- }catch(e){
-  console.error(e);
-  container.innerHTML='<div class="empty">Could not load episodes.</div>';
- }
-}
 
-function playEpisode(
- id,
- season,
- episode
-){
+ let episodes=[];
 
- if(state.details)
-  playTV(
-   state.details,
-   season,
-   episode
-  );
-
-}
-
-/* =========================================================
-   SIMILAR
-========================================================= */
-
-async function randomFromGenre(){
-
- if(!state.details)
-  return;
-
- try{
-
-  const type=
-   state.details.media_type||
-   "movie";
-
-  const genres=
-   (state.details.genres||[])
-    .map(g=>g.id)
-    .slice(0,2);
-
-  const path=
-   "/discover/"+
-   type+
-   "?language=en-US"+
-   "&sort_by=popularity.desc"+
-   (
-    genres.length
-     ?" &with_genres="+
-      genres.join("|")
-     :""
-   ).replace(" ","");
-
-  const data=
-   await api(path);
-
-  const results=
-   (data.results||[])
-    .filter(
-     x=>x.id!==state.details.id
-    );
-
-  if(!results.length)
-   return toast(
-    "No similar titles found"
-   );
-
-  const item=
-   results[
-    Math.floor(
-     Math.random()*
-     results.length
-    )
-   ];
-
-  openDetails(
-   register(item)
-  );
-
- }catch{
-
-  toast(
-   "Could not find similar titles"
-  );
-
- }
-
-}
-
-/* =========================================================
-   SETTINGS MODAL
-========================================================= */
-
-function openSettings(){
-
- applySettings();
-
- updateStats();
-
- document
-  .getElementById(
-   "settingsOverlay"
-  )
-  .classList.add("active");
-
-}
-
-function closeSettings(){
-
- document
-  .getElementById(
-   "settingsOverlay"
-  )
-  .classList.remove("active");
-
-}
-
-document
- .querySelectorAll(
-  ".settingsTab"
- )
- .forEach(
-  button=>{
-   button.addEventListener(
-    "click",
-    ()=>{
-
-     document
-      .querySelectorAll(
-       ".settingsTab"
-      )
-      .forEach(
-       x=>
-        x.classList.toggle(
-         "active",
-         x===button
-        )
-      );
-
-     document
-      .querySelectorAll(
-       ".settingPanel"
-      )
-      .forEach(
-       x=>
-        x.classList.toggle(
-         "active",
-         x.id===
-          "settings-"+
-          button.dataset.settings
-        )
-      );
-
-    }
-   );
-  }
- );
-
-document
- .querySelectorAll(
-  ".themeButton"
- )
- .forEach(
-  button=>{
-   button.addEventListener(
-    "click",
-    ()=>{
-
-     const s=
-      getSettings();
-
-     s.theme=
-      button.dataset.theme;
-
-     saveSettings(s);
-
-     applySettings();
-
-     toast(
-      "Theme changed"
-     );
-
-    }
-   );
-  }
- );
-
-/* =========================================================
-   DATA
-========================================================= */
-
-function exportData(){
-
- const payload={
-  exportedAt:
-   new Date().toISOString(),
-
-  settings:
-   getSettings(),
-
-  profiles:
-   loadProfiles(),
-
-  currentProfile:
-   getCurrentProfileId(),
-
-  profileData:{}
-
- };
-
- loadProfiles().forEach(
-  p=>{
-
-   payload.profileData[p.id]={
-    list:
-     JSON.parse(
-      localStorage.getItem(
-       "localstream_"+p.id+"_list"
-      )||"[]"
-     ),
-
-    continue:
-     JSON.parse(
-      localStorage.getItem(
-       "localstream_"+p.id+"_continue"
-      )||"[]"
-     ),
-
-    history:
-     JSON.parse(
-      localStorage.getItem(
-       "localstream_"+p.id+"_history"
-      )||"[]"
-     )
-   };
-
-  }
- );
-
- const blob=
-  new Blob(
-   [
-    JSON.stringify(
-     payload,
-     null,
-     2
-    )
-   ],
-   {
-    type:"application/json"
-   }
-  );
-
- const url=
-  URL.createObjectURL(blob);
-
- const a=
-  document.createElement("a");
-
- a.href=url;
-
- a.download=
-  "localstream-backup-"+
-  new Date()
-   .toISOString()
-   .slice(0,10)+
-  ".json";
-
- a.click();
-
- URL.revokeObjectURL(url);
-
- toast(
-  "Backup exported"
- );
-
-}
-
-function resetEverything(){
-
- if(!confirm(
-  "This will delete all LocalStream profiles, history, lists and settings. Continue?"
- ))
-  return;
-
- const keys=
-  Object.keys(
-   localStorage
-  );
-
- keys.forEach(
-  key=>{
-   if(
-    key.startsWith("localstream_")
-   )
-    localStorage.removeItem(
-     key
-    );
-  }
- );
-
- location.reload();
-
-}
-
-/* =========================================================
-   STATS
-========================================================= */
-
-function updateStats(){
-
- const profiles=
-  loadProfiles();
-
- const list=
-  getList();
-
- const history=
-  getHistory();
-
- const cacheCount=
-  Object.keys(
-   localStorage
-  ).filter(
-   k=>
-    k.startsWith(
-     "localstream_cache_"
-    )
-  ).length;
-
- const a=
-  document.getElementById(
-   "statProfiles"
-  );
-
- const b=
-  document.getElementById(
-   "statList"
-  );
-
- const c=
-  document.getElementById(
-   "statHistory"
-  );
-
- const d=
-  document.getElementById(
-   "statCache"
-  );
-
- if(a)a.textContent=
-  profiles.length;
-
- if(b)b.textContent=
-  list.length;
-
- if(c)c.textContent=
-  history.length;
-
- if(d)d.textContent=
-  cacheCount;
-
-}
-
-/* =========================================================
-   API STATUS
-========================================================= */
-
-async function updateApiStatus(){
-  const el=document.getElementById("apiStatus");
-  const source=state.apiSource==="tmdb"?"tmdb":"imdb";
-  updateMetadataSourceUI(source);
-  if(!el)return;
-  if(source==="tmdb")el.textContent="Checking TMDB...";
-  else el.textContent="Checking Cinemeta + OMDb...";
+ // Primary: OMDb's official Season response.
+ if(imdbId){
   try{
-    if(source==="tmdb")await tmdbApi("/movie/550");
-    else await Promise.all([cinemetaApi("meta/movie/tt3896198.json"),omdbApi({i:"tt3896198",plot:"short"})]);
-    el.textContent=source==="tmdb"?"TMDB connected":"Cinemeta + OMDb connected";
+   const raw=await omdbApi({i:imdbId,Season:String(season)});
+   if(Array.isArray(raw?.Episodes)){
+    episodes=raw.Episodes.map(e=>({
+     id:imdbId+":"+season+":"+(Number(e?.Episode)||0),
+     imdb_id:imdbId,
+     name:e?.Title||("Episode "+Number(e?.Episode||0)),
+     episode_number:Number(e?.Episode)||0,
+     air_date:e?.Released&&e.Released!=="N/A"?String(e.Released):"",
+     vote_average:Number(e?.imdbRating&&e.imdbRating!=="N/A"?e.imdbRating:0)||0,
+     vote_count:Number(String(e?.imdbVotes||"").replace(/,/g,""))||0,
+     still_path:"",
+     overview:""
+    })).filter(e=>e.episode_number>0);
+   }
   }catch(e){
-    console.error("API STATUS ERROR",e);
-    el.textContent=(source==="tmdb"?"TMDB":"Cinemeta + OMDb")+" unavailable: "+(e?.message||"network error");
+   console.warn("OMDb season lookup failed",imdbId,season,e);
   }
+ }
+
+ // Fallback: Cinemeta's series metadata contains episode videos.
+ if(!episodes.length && imdbId){
+  try{
+   const raw=await cinemetaApi("meta/series/"+imdbId+".json");
+   const meta=raw?.meta||raw;
+   const videos=Array.isArray(meta?.videos)?meta.videos:[];
+   episodes=videos.filter(v=>Number(v?.season)===season&&Number(v?.episode)>0)
+    .map(v=>({
+     id:imdbId+":"+season+":"+Number(v.episode),
+     imdb_id:imdbId,
+     name:v?.name||v?.title||("Episode "+Number(v.episode)),
+     episode_number:Number(v.episode),
+     air_date:v?.released||v?.releaseInfo||"",
+     vote_average:Number(v?.imdbRating||v?.rating||0)||0,
+     vote_count:0,
+     still_path:v?.thumbnail||"",
+     overview:v?.overview||v?.description||""
+    }))
+    .sort((a,b)=>a.episode_number-b.episode_number);
+  }catch(e){
+   console.warn("Cinemeta episode fallback failed",imdbId,season,e);
+  }
+ }
+
+ if(!episodes.length){
+  container.innerHTML='<div class="empty">No episodes found for Season '+season+'.</div>';
+  return;
+ }
+
+ container.innerHTML=episodes.map(e=>{
+  const image=posterUrl(e.still_path);
+  const ep=Number(e.episode_number)||0;
+  const eid=safe(String(imdbId||id));
+  return `<div class="episode" onclick="playEpisode('${eid}',${season},${ep})">${image?`<img class="episodeImage" src="${image}" loading="lazy" alt="">`:`<div class="episodeImage"></div>`}<div><div class="episodeName">${safe(e.name||("Episode "+ep))}</div><div class="episodeMeta">Episode ${ep}${e.air_date?` • ${safe(String(e.air_date).slice(0,10))}`:""} • <span class="rating">★ ${Number(e.vote_average||0).toFixed(1)}</span></div></div></div>`;
+ }).join("");
 }
 
-document.addEventListener("click",e=>{
- if(!e.target.closest(".customSelect"))document.querySelectorAll(".customSelect.open").forEach(x=>x.classList.remove("open"));
-});
-
-/* =========================================================
-   KEYBOARD SHORTCUTS
-========================================================= */
-
-document.addEventListener(
- "keydown",
- e=>{
-
-  if(
-   e.target.tagName==="INPUT"||
-   e.target.tagName==="TEXTAREA"||
-   e.target.tagName==="SELECT"
-  )
-   return;
-
-  if(e.key==="Escape"){
-
-   if(
-    document
-     .getElementById(
-      "player"
-     )
-     .classList.contains("active")
-   ){
-
-    closePlayer();
-
-   }else if(
-    document
-     .getElementById(
-      "profileOverlay"
-     )
-     .classList.contains("active")
-   ){
-
-    closeProfiles();
-
-   }else if(
-    document
-     .getElementById(
-      "settingsOverlay"
-     )
-     .classList.contains("active")
-   ){
-
-    closeSettings();
-
-   }else if(state.details){
-
-    closeDetails();
-
-   }
-
-  }
-
-  if(e.key==="/"){
-
-   e.preventDefault();
-
-   document
-    .getElementById(
-     "miniSearch"
-    )
-    .focus();
-
-  }
-
-  if(e.key.toLowerCase()==="h")
-   navigate("home");
-
-  if(e.key.toLowerCase()==="m")
-   navigate("movies");
-
-  if(e.key.toLowerCase()==="t")
-   navigate("tv");
-
-  if(e.key.toLowerCase()==="l")
-   navigate("mylist");
-
-  if(e.key.toLowerCase()==="s")
-   openSettings();
-
- }
-);
-
-/* =========================================================
-   SEARCH INPUTS
-========================================================= */
-
-document
- .getElementById(
-  "searchInput"
- )
- .addEventListener(
-  "keydown",
-  e=>{
-   if(e.key==="Enter")
-    search(
-     e.target.value
-    );
-  }
- );
-
-document
- .getElementById(
-  "miniSearch"
- )
- .addEventListener(
-  "keydown",
-  e=>{
-   if(e.key==="Enter")
-    search(
-     e.target.value
-    );
-  }
- );
-
-/* =========================================================
-   NAV EVENTS
-========================================================= */
-
-document
- .querySelectorAll(
-  ".navButton"
- )
- .forEach(
-  button=>{
-   button.addEventListener(
-    "click",
-    ()=>navigate(
-     button.dataset.page
-    )
-   );
-  }
- );
-
-document
- .querySelectorAll(
-  "[data-mobile-page]"
- )
- .forEach(
-  button=>{
-   button.addEventListener(
-    "click",
-    ()=>navigate(
-     button.dataset.mobilePage
-    )
-   );
-  }
- );
-
-/* =========================================================
-   OVERLAY CLICK
-========================================================= */
-
-[
- "profileOverlay",
- "settingsOverlay"
-].forEach(id=>{
-
- const el=
-  document.getElementById(id);
-
- el.addEventListener(
-  "click",
-  e=>{
-   if(e.target===el){
-
-    if(id==="profileOverlay")
-     closeProfiles();
-
-    if(id==="settingsOverlay")
-     closeSettings();
-
-   }
-  }
- );
-
-});
-
-/* =========================================================
-   OLD STORAGE MIGRATION
-========================================================= */
-
-(function migrateOldStorage(){
-
- const id=
-  getCurrentProfileId();
-
- [
-  ["localstream_list","list"],
-  ["localstream_continue","continue"],
-  ["localstream_history","history"]
- ]
- .forEach(
-  ([oldKey,newKey])=>{
-
-   if(
-    !localStorage.getItem(
-     "localstream_"+id+"_"+newKey
-    )&&
-    localStorage.getItem(
-     oldKey
-    )
-   ){
-
-    localStorage.setItem(
-     "localstream_"+id+"_"+newKey,
-     localStorage.getItem(
-      oldKey
-     )
-    );
-
-   }
-
-  }
- );
-
-})();
-
-/* =========================================================
-   INITIALIZE
-========================================================= */
-
-applySettings();
-
-updateProfileButton();
-
-renderContinue();
-
-renderMyList();
-
-renderHistory();
-
-loadHome();
-
-</script>
-
-</body>
-</html>
-```
