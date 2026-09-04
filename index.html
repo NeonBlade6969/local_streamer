@@ -5753,3 +5753,624 @@ async function loadEpisodes(id,forcedSeason=null){
  }).join("");
 }
 
+function playEpisode(
+ id,
+ season,
+ episode
+){
+
+ if(state.details)
+  playTV(
+   state.details,
+   season,
+   episode
+  );
+
+}
+
+/* =========================================================
+   SIMILAR
+========================================================= */
+
+async function randomFromGenre(){
+
+ if(!state.details)
+  return;
+
+ try{
+
+  const type=
+   state.details.media_type||
+   "movie";
+
+  const genres=
+   (state.details.genres||[])
+    .map(g=>g.id)
+    .slice(0,2);
+
+  const path=
+   "/discover/"+
+   type+
+   "?language=en-US"+
+   "&sort_by=popularity.desc"+
+   (
+    genres.length
+     ?" &with_genres="+
+      genres.join("|")
+     :""
+   ).replace(" ","");
+
+  const data=
+   await api(path);
+
+  const results=
+   (data.results||[])
+    .filter(
+     x=>x.id!==state.details.id
+    );
+
+  if(!results.length)
+   return toast(
+    "No similar titles found"
+   );
+
+  const item=
+   results[
+    Math.floor(
+     Math.random()*
+     results.length
+    )
+   ];
+
+  openDetails(
+   register(item)
+  );
+
+ }catch{
+
+  toast(
+   "Could not find similar titles"
+  );
+
+ }
+
+}
+
+/* =========================================================
+   SETTINGS MODAL
+========================================================= */
+
+function openSettings(){
+
+ applySettings();
+
+ updateStats();
+
+ document
+  .getElementById(
+   "settingsOverlay"
+  )
+  .classList.add("active");
+
+}
+
+function closeSettings(){
+
+ document
+  .getElementById(
+   "settingsOverlay"
+  )
+  .classList.remove("active");
+
+}
+
+document
+ .querySelectorAll(
+  ".settingsTab"
+ )
+ .forEach(
+  button=>{
+   button.addEventListener(
+    "click",
+    ()=>{
+
+     document
+      .querySelectorAll(
+       ".settingsTab"
+      )
+      .forEach(
+       x=>
+        x.classList.toggle(
+         "active",
+         x===button
+        )
+      );
+
+     document
+      .querySelectorAll(
+       ".settingPanel"
+      )
+      .forEach(
+       x=>
+        x.classList.toggle(
+         "active",
+         x.id===
+          "settings-"+
+          button.dataset.settings
+        )
+      );
+
+    }
+   );
+  }
+ );
+
+document
+ .querySelectorAll(
+  ".themeButton"
+ )
+ .forEach(
+  button=>{
+   button.addEventListener(
+    "click",
+    ()=>{
+
+     const s=
+      getSettings();
+
+     s.theme=
+      button.dataset.theme;
+
+     saveSettings(s);
+
+     applySettings();
+
+     toast(
+      "Theme changed"
+     );
+
+    }
+   );
+  }
+ );
+
+/* =========================================================
+   DATA
+========================================================= */
+
+function exportData(){
+
+ const payload={
+  exportedAt:
+   new Date().toISOString(),
+
+  settings:
+   getSettings(),
+
+  profiles:
+   loadProfiles(),
+
+  currentProfile:
+   getCurrentProfileId(),
+
+  profileData:{}
+
+ };
+
+ loadProfiles().forEach(
+  p=>{
+
+   payload.profileData[p.id]={
+    list:
+     JSON.parse(
+      localStorage.getItem(
+       "localstream_"+p.id+"_list"
+      )||"[]"
+     ),
+
+    continue:
+     JSON.parse(
+      localStorage.getItem(
+       "localstream_"+p.id+"_continue"
+      )||"[]"
+     ),
+
+    history:
+     JSON.parse(
+      localStorage.getItem(
+       "localstream_"+p.id+"_history"
+      )||"[]"
+     )
+   };
+
+  }
+ );
+
+ const blob=
+  new Blob(
+   [
+    JSON.stringify(
+     payload,
+     null,
+     2
+    )
+   ],
+   {
+    type:"application/json"
+   }
+  );
+
+ const url=
+  URL.createObjectURL(blob);
+
+ const a=
+  document.createElement("a");
+
+ a.href=url;
+
+ a.download=
+  "localstream-backup-"+
+  new Date()
+   .toISOString()
+   .slice(0,10)+
+  ".json";
+
+ a.click();
+
+ URL.revokeObjectURL(url);
+
+ toast(
+  "Backup exported"
+ );
+
+}
+
+function resetEverything(){
+
+ if(!confirm(
+  "This will delete all LocalStream profiles, history, lists and settings. Continue?"
+ ))
+  return;
+
+ const keys=
+  Object.keys(
+   localStorage
+  );
+
+ keys.forEach(
+  key=>{
+   if(
+    key.startsWith("localstream_")
+   )
+    localStorage.removeItem(
+     key
+    );
+  }
+ );
+
+ location.reload();
+
+}
+
+/* =========================================================
+   STATS
+========================================================= */
+
+function updateStats(){
+
+ const profiles=
+  loadProfiles();
+
+ const list=
+  getList();
+
+ const history=
+  getHistory();
+
+ const cacheCount=
+  Object.keys(
+   localStorage
+  ).filter(
+   k=>
+    k.startsWith(
+     "localstream_cache_"
+    )
+  ).length;
+
+ const a=
+  document.getElementById(
+   "statProfiles"
+  );
+
+ const b=
+  document.getElementById(
+   "statList"
+  );
+
+ const c=
+  document.getElementById(
+   "statHistory"
+  );
+
+ const d=
+  document.getElementById(
+   "statCache"
+  );
+
+ if(a)a.textContent=
+  profiles.length;
+
+ if(b)b.textContent=
+  list.length;
+
+ if(c)c.textContent=
+  history.length;
+
+ if(d)d.textContent=
+  cacheCount;
+
+}
+
+/* =========================================================
+   API STATUS
+========================================================= */
+
+async function updateApiStatus(){
+  const el=document.getElementById("apiStatus");
+  const select=document.getElementById("metadataSource");
+
+  if(select)select.value="imdb";
+  if(!el)return;
+
+  el.textContent="Checking Cinemeta + OMDb...";
+
+  try{
+    await omdbApi({t:"Inception",plot:"short"});
+    el.textContent="Cinemeta + OMDb connected";
+  }catch(e){
+    console.error("API STATUS ERROR",e);
+    el.textContent="OMDb + IMDb unavailable: "+(e?.message||"network error");
+  }
+}
+
+/* =========================================================
+   KEYBOARD SHORTCUTS
+========================================================= */
+
+document.addEventListener(
+ "keydown",
+ e=>{
+
+  if(
+   e.target.tagName==="INPUT"||
+   e.target.tagName==="TEXTAREA"||
+   e.target.tagName==="SELECT"
+  )
+   return;
+
+  if(e.key==="Escape"){
+
+   if(
+    document
+     .getElementById(
+      "player"
+     )
+     .classList.contains("active")
+   ){
+
+    closePlayer();
+
+   }else if(
+    document
+     .getElementById(
+      "profileOverlay"
+     )
+     .classList.contains("active")
+   ){
+
+    closeProfiles();
+
+   }else if(
+    document
+     .getElementById(
+      "settingsOverlay"
+     )
+     .classList.contains("active")
+   ){
+
+    closeSettings();
+
+   }else if(state.details){
+
+    closeDetails();
+
+   }
+
+  }
+
+  if(e.key==="/"){
+
+   e.preventDefault();
+
+   document
+    .getElementById(
+     "miniSearch"
+    )
+    .focus();
+
+  }
+
+  if(e.key.toLowerCase()==="h")
+   navigate("home");
+
+  if(e.key.toLowerCase()==="m")
+   navigate("movies");
+
+  if(e.key.toLowerCase()==="t")
+   navigate("tv");
+
+  if(e.key.toLowerCase()==="l")
+   navigate("mylist");
+
+  if(e.key.toLowerCase()==="s")
+   openSettings();
+
+ }
+);
+
+/* =========================================================
+   SEARCH INPUTS
+========================================================= */
+
+document
+ .getElementById(
+  "searchInput"
+ )
+ .addEventListener(
+  "keydown",
+  e=>{
+   if(e.key==="Enter")
+    search(
+     e.target.value
+    );
+  }
+ );
+
+document
+ .getElementById(
+  "miniSearch"
+ )
+ .addEventListener(
+  "keydown",
+  e=>{
+   if(e.key==="Enter")
+    search(
+     e.target.value
+    );
+  }
+ );
+
+/* =========================================================
+   NAV EVENTS
+========================================================= */
+
+document
+ .querySelectorAll(
+  ".navButton"
+ )
+ .forEach(
+  button=>{
+   button.addEventListener(
+    "click",
+    ()=>navigate(
+     button.dataset.page
+    )
+   );
+  }
+ );
+
+document
+ .querySelectorAll(
+  "[data-mobile-page]"
+ )
+ .forEach(
+  button=>{
+   button.addEventListener(
+    "click",
+    ()=>navigate(
+     button.dataset.mobilePage
+    )
+   );
+  }
+ );
+
+/* =========================================================
+   OVERLAY CLICK
+========================================================= */
+
+[
+ "profileOverlay",
+ "settingsOverlay"
+].forEach(id=>{
+
+ const el=
+  document.getElementById(id);
+
+ el.addEventListener(
+  "click",
+  e=>{
+   if(e.target===el){
+
+    if(id==="profileOverlay")
+     closeProfiles();
+
+    if(id==="settingsOverlay")
+     closeSettings();
+
+   }
+  }
+ );
+
+});
+
+/* =========================================================
+   OLD STORAGE MIGRATION
+========================================================= */
+
+(function migrateOldStorage(){
+
+ const id=
+  getCurrentProfileId();
+
+ [
+  ["localstream_list","list"],
+  ["localstream_continue","continue"],
+  ["localstream_history","history"]
+ ]
+ .forEach(
+  ([oldKey,newKey])=>{
+
+   if(
+    !localStorage.getItem(
+     "localstream_"+id+"_"+newKey
+    )&&
+    localStorage.getItem(
+     oldKey
+    )
+   ){
+
+    localStorage.setItem(
+     "localstream_"+id+"_"+newKey,
+     localStorage.getItem(
+      oldKey
+     )
+    );
+
+   }
+
+  }
+ );
+
+})();
+
+/* =========================================================
+   INITIALIZE
+========================================================= */
+
+applySettings();
+
+updateProfileButton();
+
+renderContinue();
+
+renderMyList();
+
+renderHistory();
+
+loadHome();
+
+</script>
+
+</body>
+</html>
+```
