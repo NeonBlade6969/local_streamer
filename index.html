@@ -2534,11 +2534,38 @@ function toggleSetting(key){
 }
 
 /* =========================================================
-   API — OMDb + IMDb ONLY
+   API — CINEMETA + OMDb (FREE, IMDb IDs)
 ========================================================= */
 
 const OMDB_KEY="58e67c0a";
 const OMDB="https://www.omdbapi.com/";
+const CINEMETA_BASE="https://v3-cinemeta.strem.io";
+const CINEMETA_FALLBACK="https://cinemeta-live.strem.io";
+
+async function jsonFetch(url, cacheKey, ttl=10*60*1000){
+  const cached=getCached(cacheKey);
+  if(cached)return cached;
+  const r=await fetch(url,{method:"GET",headers:{"Accept":"application/json"}});
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  const data=await r.json();
+  setCached(cacheKey,data,ttl);
+  return data;
+}
+
+async function cinemetaApi(path){
+  const clean=String(path||"").replace(/^\/+/,"");
+  const cacheKey="cinemeta:"+clean;
+  let lastError=null;
+  for(const base of [CINEMETA_BASE,CINEMETA_FALLBACK]){
+    try{
+      return await jsonFetch(base+"/"+clean,cacheKey,30*60*1000);
+    }catch(e){
+      lastError=e;
+      console.warn("Cinemeta request failed",base+"/"+clean,e);
+    }
+  }
+  throw new Error("Cinemeta request failed: "+(lastError?.message||"network error"));
+}
 
 async function omdbApi(params){
   const query=new URLSearchParams({...params,apikey:OMDB_KEY});
@@ -2546,22 +2573,58 @@ async function omdbApi(params){
   const cached=getCached(cacheKey);
   if(cached)return cached;
 
-  const r=await fetch(OMDB+"?"+query.toString(),{
-    method:"GET",
-    headers:{"Accept":"application/json"}
-  });
+  const baseUrl=OMDB+"?"+query.toString();
 
-  if(!r.ok)throw new Error("OMDb HTTP "+r.status);
-
-  const data=await r.json();
-
-  if(data.Response==="False"){
-    throw new Error(data.Error||"OMDb request failed");
+  /* OMDb supports JSONP, which is useful when this app is opened as file://. */
+  try{
+    const data=await new Promise((resolve,reject)=>{
+      const callback="localStreamOMDb_"+Date.now()+"_"+Math.random().toString(36).slice(2);
+      const script=document.createElement("script");
+      let finished=false;
+      const timeout=setTimeout(()=>{
+        if(finished)return;
+        finished=true;
+        cleanup();
+        reject(new Error("OMDb JSONP request timed out"));
+      },15000);
+      function cleanup(){
+        clearTimeout(timeout);
+        try{delete window[callback];}catch(_){window[callback]=undefined;}
+        if(script.parentNode)script.parentNode.removeChild(script);
+      }
+      window[callback]=result=>{
+        if(finished)return;
+        finished=true;
+        cleanup();
+        if(result?.Response==="False")reject(new Error(result.Error||"OMDb request failed"));
+        else resolve(result);
+      };
+      script.async=true;
+      script.onerror=()=>{
+        if(finished)return;
+        finished=true;
+        cleanup();
+        reject(new Error("OMDb JSONP script could not load"));
+      };
+      script.src=baseUrl+"&callback="+encodeURIComponent(callback);
+      document.head.appendChild(script);
+    });
+    setCached(cacheKey,data,10*60*1000);
+    return data;
+  }catch(jsonpError){
+    console.warn("OMDb JSONP failed; trying fetch",jsonpError);
   }
 
-  setCached(cacheKey,data,10*60*1000);
-  state.apiSource="OMDb + IMDb";
-  return data;
+  try{
+    const r=await fetch(baseUrl,{method:"GET",headers:{"Accept":"application/json"}});
+    if(!r.ok)throw new Error("OMDb HTTP "+r.status);
+    const data=await r.json();
+    if(data.Response==="False")throw new Error(data.Error||"OMDb request failed");
+    setCached(cacheKey,data,10*60*1000);
+    return data;
+  }catch(fetchError){
+    throw new Error("OMDb request failed: "+(fetchError?.message||"network error"));
+  }
 }
 
 function imdbTconst(value){
@@ -2579,7 +2642,7 @@ function imdbText(x){
 }
 
 function omdbPoster(value){
-  return value && value!=="N/A" ? value : "";
+  return value&&value!=="N/A"?value:"";
 }
 
 function omdbGenres(value){
@@ -2597,32 +2660,87 @@ function omdbType(value){
   return String(value||"").toLowerCase()==="series"?"tv":"movie";
 }
 
-function omdbEpisode(raw){
-  const rating=Number(raw?.imdbRating&&raw.imdbRating!=="N/A"?raw.imdbRating:0);
+function cinemetaType(value){
+  return String(value||"").toLowerCase()==="series"?"tv":"movie";
+}
+
+function cinemetaGenres(value){
+  if(!Array.isArray(value))return [];
+  return value.map(name=>({
+    id:String(name).toLowerCase().replace(/[^a-z0-9]+/g,"-"),
+    name:String(name)
+  }));
+}
+
+function cinemetaPreview(x,typeHint=""){
+  const id=imdbTconst(x?.id||x?.imdb_id);
+  const type=cinemetaType(x?.type||typeHint);
+  const release=String(x?.releaseInfo||x?.release_date||x?.first_air_date||"");
+  const year=omdbYear(release);
   return {
-    id:imdbTconst(raw?.imdbID)||raw?.imdbID||"",
-    imdb_id:imdbTconst(raw?.imdbID)||raw?.imdbID||"",
-    name:raw?.Title||"Episode",
-    episode_number:Number(raw?.Episode)||0,
-    air_date:raw?.Released&&raw.Released!=="N/A"?raw.Released:"",
-    vote_average:rating,
+    id:id||x?.id||"",
+    imdb_id:id||x?.id||"",
+    media_type:type,
+    title:type==="movie"?(x?.name||""):undefined,
+    name:type==="tv"?(x?.name||""):undefined,
+    release_date:type==="movie"&&year?year+"-01-01":"",
+    first_air_date:type==="tv"&&year?year+"-01-01":"",
+    poster_path:x?.poster||"",
+    backdrop_path:x?.background||x?.poster||"",
+    overview:x?.description||"",
+    vote_average:Number(x?.imdbRating||0)||0,
     vote_count:0,
-    still_path:"",
-    overview:""
+    genres:cinemetaGenres(x?.genres),
+    seasons:[],
+    _imdb:true,
+    _cinemeta:true
   };
 }
 
-function adaptOMDbSeason(raw){
-  const episodes=Array.isArray(raw?.Episodes)
-    ?raw.Episodes.map(omdbEpisode)
-    :[];
+function cinemetaDetail(raw,typeHint){
+  const meta=raw?.meta||raw;
+  if(!meta)return null;
+  const type=cinemetaType(meta.type||typeHint);
+  const item=cinemetaPreview(meta,type);
+  const videos=Array.isArray(meta.videos)?meta.videos:[];
+  if(type==="tv"){
+    const map=new Map();
+    videos.forEach(v=>{
+      const season=Number(v?.season)||0;
+      if(season>0&&!map.has(season))map.set(season,0);
+      if(season>0)map.set(season,map.get(season)+1);
+    });
+    item.seasons=[...map.entries()].sort((a,b)=>a[0]-b[0]).map(([season,count])=>({
+      season_number:season,
+      episode_count:count,
+      name:"Season "+season
+    }));
+    item._videos=videos;
+  }
+  return item;
+}
 
-  return {
-    title:raw?.Title||"",
-    season_number:Number(raw?.Season)||1,
-    episodes,
-    total_episodes:episodes.length
-  };
+async function enrichWithOMDb(item){
+  const id=imdbTconst(item?.imdb_id||item?.id);
+  if(!id)return item;
+  try{
+    const raw=await omdbApi({i:id,plot:"full"});
+    const detail=adaptOMDbDetail(raw);
+    return {...item,...detail,
+      id:id,imdb_id:id,
+      media_type:item.media_type,
+      title:item.media_type==="movie"?(detail.title||item.title):undefined,
+      name:item.media_type==="tv"?(detail.name||item.name):undefined,
+      poster_path:detail.poster_path||item.poster_path,
+      backdrop_path:detail.backdrop_path||item.backdrop_path,
+      overview:detail.overview||item.overview,
+      genres:(detail.genres&&detail.genres.length)?detail.genres:item.genres,
+      seasons:item.seasons?.length?item.seasons:detail.seasons
+    };
+  }catch(e){
+    console.warn("OMDb enrichment unavailable; using Cinemeta",id,e);
+    return item;
+  }
 }
 
 function adaptOMDbDetail(raw){
@@ -2633,213 +2751,132 @@ function adaptOMDbDetail(raw){
   const votes=Number(String(raw?.imdbVotes||"").replace(/,/g,""))||0;
   const poster=omdbPoster(raw?.Poster);
   const totalSeasons=Number(raw?.totalSeasons)||0;
-
-  const seasons=type==="tv"
-    ?Array.from({length:totalSeasons},(_,i)=>({
-       season_number:i+1,
-       episode_count:null,
-       name:"Season "+(i+1)
-     }))
-    :[];
-
+  const seasons=type==="tv"?Array.from({length:totalSeasons},(_,i)=>({season_number:i+1,episode_count:null,name:"Season "+(i+1)})):[];
   return {
-    id:tconst||raw?.imdbID||"",
-    imdb_id:tconst||raw?.imdbID||"",
-    media_type:type,
-    title:type==="movie"?raw?.Title:undefined,
-    name:type==="tv"?raw?.Title:undefined,
-    release_date:type==="movie"&&year?year+"-01-01":"",
-    first_air_date:type==="tv"&&year?year+"-01-01":"",
-    poster_path:poster,
-    backdrop_path:poster,
-    overview:raw?.Plot&&raw.Plot!=="N/A"?raw.Plot:"",
-    vote_average:rating,
-    vote_count:votes,
-    genres:omdbGenres(raw?.Genre),
-    seasons,
-    _imdb:true,
-    _omdb:true,
-
-    rated:raw?.Rated&&raw.Rated!=="N/A"?raw.Rated:"",
-    runtime:raw?.Runtime&&raw.Runtime!=="N/A"?raw.Runtime:"",
-    actors:raw?.Actors&&raw.Actors!=="N/A"?raw.Actors:"",
-    director:raw?.Director&&raw.Director!=="N/A"?raw.Director:"",
-    writer:raw?.Writer&&raw.Writer!=="N/A"?raw.Writer:"",
-    boxOffice:raw?.BoxOffice&&raw.BoxOffice!=="N/A"?raw.BoxOffice:"",
-    language:raw?.Language&&raw.Language!=="N/A"?raw.Language:"",
-    country:raw?.Country&&raw.Country!=="N/A"?raw.Country:"",
-    awards:raw?.Awards&&raw.Awards!=="N/A"?raw.Awards:"",
-    imdbUrl:tconst?"https://www.imdb.com/title/"+tconst+"/":""
+    id:tconst||raw?.imdbID||"", imdb_id:tconst||raw?.imdbID||"", media_type:type,
+    title:type==="movie"?raw?.Title:undefined, name:type==="tv"?raw?.Title:undefined,
+    release_date:type==="movie"&&year?year+"-01-01":"", first_air_date:type==="tv"&&year?year+"-01-01":"",
+    poster_path:poster, backdrop_path:poster,
+    overview:raw?.Plot&&raw.Plot!=="N/A"?raw.Plot:"", vote_average:rating, vote_count:votes,
+    genres:omdbGenres(raw?.Genre), seasons, _imdb:true, _omdb:true,
+    rated:raw?.Rated&&raw.Rated!=="N/A"?raw.Rated:"", runtime:raw?.Runtime&&raw.Runtime!=="N/A"?raw.Runtime:"",
+    actors:raw?.Actors&&raw.Actors!=="N/A"?raw.Actors:"", director:raw?.Director&&raw.Director!=="N/A"?raw.Director:"",
+    writer:raw?.Writer&&raw.Writer!=="N/A"?raw.Writer:"", boxOffice:raw?.BoxOffice&&raw.BoxOffice!=="N/A"?raw.BoxOffice:"",
+    language:raw?.Language&&raw.Language!=="N/A"?raw.Language:"", country:raw?.Country&&raw.Country!=="N/A"?raw.Country:"",
+    awards:raw?.Awards&&raw.Awards!=="N/A"?raw.Awards:"", imdbUrl:tconst?"https://www.imdb.com/title/"+tconst+"/":""
   };
 }
 
 async function imdbDetails(tconst){
-  const raw=await omdbApi({i:tconst,plot:"full"});
-  return adaptOMDbDetail(raw);
-}
-
-async function imdbSearch(query,page=1){
-  const raw=await omdbApi({s:query,page});
-  const arr=Array.isArray(raw?.Search)?raw.Search:[];
-
-  const basic=arr.map(x=>{
-    const id=imdbTconst(x?.imdbID);
-    const type=omdbType(x?.Type);
-    const year=omdbYear(x?.Year);
-    const poster=omdbPoster(x?.Poster);
-
-    return {
-      id:id||x?.imdbID||"",
-      imdb_id:id||x?.imdbID||"",
-      media_type:type,
-      title:type==="movie"?x?.Title:undefined,
-      name:type==="tv"?x?.Title:undefined,
-      release_date:type==="movie"&&year?year+"-01-01":"",
-      first_air_date:type==="tv"&&year?year+"-01-01":"",
-      poster_path:poster,
-      backdrop_path:poster,
-      overview:"",
-      vote_average:0,
-      vote_count:0,
-      genres:[],
-      seasons:[],
-      _imdb:true,
-      _omdb:true
-    };
-  }).filter(x=>x.id);
-
-  return Promise.all(basic.map(async x=>{
-    try{return await imdbDetails(x.imdb_id);}
-    catch{return x;}
-  }));
-}
-
-/* OMDb search is the catalog mechanism.
-   OMDb has no native trending/discover/provider API, so LocalStream
-   uses OMDb search results and sorts/filters them locally. */
-async function omdbCatalog(type="all",page=1,sort="popular",genre=""){
-  const seedQueries=[
-    "the","a","love","man","star","night","life","world",
-    "dark","last","new","house","city","war","time"
-  ];
-
-  const query=seedQueries[(Number(page)-1)%seedQueries.length];
-  let items=await imdbSearch(query,page);
-
-  items=items.filter(x=>type==="all"||x.media_type===type);
-
-  if(genre){
-    const wanted=String(genre).toLowerCase();
-    const genreMap={
-      "28":"action","12":"adventure","16":"animation","35":"comedy",
-      "80":"crime","99":"documentary","18":"drama","10751":"family",
-      "14":"fantasy","27":"horror","9648":"mystery","10749":"romance",
-      "878":"sci-fi","53":"thriller","10752":"war","37":"western",
-      "10759":"action","10765":"sci-fi","10768":"war"
-    };
-    const wantedName=(genreMap[wanted]||wanted).replace(/-/g," ");
-    items=items.filter(x=>
-      (x.genres||[]).some(g=>String(g.name).toLowerCase().includes(wantedName))
-    );
+  const id=imdbTconst(tconst);
+  if(!id)throw new Error("Invalid IMDb ID");
+  let type="movie";
+  let rawMeta=null;
+  try{
+    rawMeta=await cinemetaApi("meta/movie/"+id+".json");
+  }catch(_){
+    type="tv";
+    rawMeta=await cinemetaApi("meta/series/"+id+".json");
   }
+  let item=cinemetaDetail(rawMeta,type);
+  if(!item||!item.id){
+    type=type==="movie"?"tv":"movie";
+    rawMeta=await cinemetaApi("meta/"+(type==="tv"?"series":"movie")+"/"+id+".json");
+    item=cinemetaDetail(rawMeta,type);
+  }
+  if(!item)throw new Error("Cinemeta returned no metadata for "+id);
+  return await enrichWithOMDb(item);
+}
 
-  items.sort((a,b)=>{
-    if(sort==="title")return String(a.title||a.name).localeCompare(String(b.title||b.name));
-    if(sort==="year"){
-      const ay=Number((a.release_date||a.first_air_date||"").slice(0,4))||0;
-      const by=Number((b.release_date||b.first_air_date||"").slice(0,4))||0;
-      return by-ay;
-    }
-    return Number(b.vote_average||0)-Number(a.vote_average||0);
-  });
+async function cinemetaSearch(query,type,page=1){
+  const q=encodeURIComponent(String(query||""));
+  const typePath=type==="tv"?"series":"movie";
+  const raw=await cinemetaApi("catalog/"+typePath+"/top/search="+q+".json");
+  const metas=Array.isArray(raw?.metas)?raw.metas:[];
+  const items=metas.map(x=>cinemetaPreview(x,typePath)).filter(x=>x.id);
+  return {page:Number(page)||1,total_pages:100,total_results:items.length,results:items};
+}
 
-  return {
-    page:Number(page)||1,
-    total_pages:100,
-    total_results:items.length,
-    results:items
-  };
+async function imdbSearch(query,page=1,type="all"){
+  const types=type==="all"?["movie","tv"]:[type];
+  const responses=await Promise.all(types.map(t=>cinemetaSearch(query,t,page).catch(e=>({results:[]}))));
+  const seen=new Set();
+  let items=[];
+  responses.forEach(r=>(r.results||[]).forEach(x=>{
+    if(!seen.has(x.id)){seen.add(x.id);items.push(x);}
+  }));
+  return items;
+}
+
+async function cinemetaCatalog(type="all",page=1,sort="popular",genre=""){
+  const types=type==="all"?["movie","tv"]:[type];
+  const skip=Math.max(0,(Number(page)||1)-1)*100;
+  const responses=await Promise.all(types.map(async t=>{
+    const typePath=t==="tv"?"series":"movie";
+    const suffix=skip?"/skip="+skip:"";
+    const raw=await cinemetaApi("catalog/"+typePath+"/top"+suffix+".json");
+    return (Array.isArray(raw?.metas)?raw.metas:[]).map(x=>cinemetaPreview(x,typePath));
+  }));
+  let items=responses.flat().filter(x=>x.id);
+  const seen=new Set();
+  items=items.filter(x=>{if(seen.has(x.id))return false;seen.add(x.id);return true;});
+  if(genre){
+    const wanted=String(genre).toLowerCase().replace(/-/g," ");
+    items=items.filter(x=>(x.genres||[]).some(g=>String(g.name).toLowerCase().includes(wanted)));
+  }
+  if(sort==="title")items.sort((a,b)=>String(a.title||a.name).localeCompare(String(b.title||b.name)));
+  else if(sort==="year")items.sort((a,b)=>Number((b.release_date||b.first_air_date||"").slice(0,4))-Number((a.release_date||a.first_air_date||"").slice(0,4)));
+  else items.sort((a,b)=>Number(b.vote_average||0)-Number(a.vote_average||0));
+  return {page:Number(page)||1,total_pages:100,total_results:items.length,results:items};
 }
 
 async function imdbFallback(path){
   const u=new URL(path,"https://localstream.invalid");
   const p=u.pathname;
-
   if(p==="/search/multi"){
     const q=u.searchParams.get("query")||"";
     const page=Number(u.searchParams.get("page")||1);
-    return {
-      page,
-      total_pages:100,
-      results:await imdbSearch(q,page)
-    };
+    const typeParam=(u.searchParams.get("type")||"all").toLowerCase();
+    return {page,total_pages:100,results:await imdbSearch(q,page,typeParam)};
   }
-
-  const detailMatch=p.match(/^\/(movie|tv)\/(tt\d+)/i);
-  if(detailMatch&&!/\/season\//.test(p)){
-    const item=await imdbDetails(detailMatch[2]);
-    item.media_type=detailMatch[1];
-    return item;
-  }
-
   const seasonMatch=p.match(/^\/tv\/(tt\d+)\/season\/(\d+)/i);
   if(seasonMatch){
-    const raw=await omdbApi({
-      i:seasonMatch[1],
-      Season:Number(seasonMatch[2])
-    });
-    return adaptOMDbSeason(raw);
+    const id=imdbTconst(seasonMatch[1]);
+    const raw=await cinemetaApi("meta/series/"+id+".json");
+    const meta=cinemetaDetail(raw,"tv");
+    const season=Number(seasonMatch[2]);
+    const videos=(meta?._videos||[]).filter(v=>Number(v?.season)===season);
+    return {
+      title:meta?.name||"",season_number:season,
+      episodes:videos.map(v=>({
+        id:id+":"+season+":"+(Number(v?.episode)||0),
+        imdb_id:id,
+        name:v?.title||("Episode "+Number(v?.episode||0)),
+        episode_number:Number(v?.episode)||0,
+        air_date:v?.released?String(v.released).slice(0,10):"",
+        vote_average:Number(v?.imdbRating||meta?.vote_average||0)||0,
+        vote_count:0,still_path:v?.thumbnail||"",overview:v?.overview||v?.description||""
+      })).filter(e=>e.episode_number>0),
+    };
   }
-
-  if(p.includes("/trending/all/day")){
-    return omdbCatalog("all",1,"popular");
-  }
-
-  if(p.includes("/movie/top_rated")){
-    return omdbCatalog("movie",Number(u.searchParams.get("page")||1),"rating");
-  }
-
-  if(p.includes("/tv/top_rated")){
-    return omdbCatalog("tv",Number(u.searchParams.get("page")||1),"rating");
-  }
-
-  if(p.includes("/movie/popular")){
-    return omdbCatalog("movie",Number(u.searchParams.get("page")||1),"popular");
-  }
-
-  if(p.includes("/tv/popular")){
-    return omdbCatalog("tv",Number(u.searchParams.get("page")||1),"popular");
-  }
-
-  if(p.includes("/discover/movie")||p.includes("/movie")){
-    return omdbCatalog(
-      "movie",
-      Number(u.searchParams.get("page")||1),
-      u.searchParams.get("sort_by")==="original_title.asc"?"title":
-      u.searchParams.get("sort_by")==="primary_release_date.desc"?"year":"rating",
-      u.searchParams.get("with_genres")||""
-    );
-  }
-
-  if(p.includes("/discover/tv")||p.includes("/tv")){
-    return omdbCatalog(
-      "tv",
-      Number(u.searchParams.get("page")||1),
-      u.searchParams.get("sort_by")==="name.asc"?"title":
-      u.searchParams.get("sort_by")==="first_air_date.desc"?"year":"rating",
-      u.searchParams.get("with_genres")||""
-    );
-  }
-
-  throw new Error("OMDb endpoint is not mapped: "+path);
+  const detailMatch=p.match(/^\/(movie|tv)\/(tt\d+)/i);
+  if(detailMatch&&!/\/season\//.test(p))return await imdbDetails(detailMatch[2]);
+  if(p.includes("/trending/all/day"))return cinemetaCatalog("all",1,"popular");
+  if(p.includes("/movie/top_rated"))return cinemetaCatalog("movie",Number(u.searchParams.get("page")||1),"rating");
+  if(p.includes("/tv/top_rated"))return cinemetaCatalog("tv",Number(u.searchParams.get("page")||1),"rating");
+  if(p.includes("/movie/popular"))return cinemetaCatalog("movie",Number(u.searchParams.get("page")||1),"popular");
+  if(p.includes("/tv/popular"))return cinemetaCatalog("tv",Number(u.searchParams.get("page")||1),"popular");
+  if(p.includes("/discover/movie")||p.includes("/movie"))return cinemetaCatalog("movie",Number(u.searchParams.get("page")||1),"popular",u.searchParams.get("with_genres")||"");
+  if(p.includes("/discover/tv")||p.includes("/tv"))return cinemetaCatalog("tv",Number(u.searchParams.get("page")||1),"popular",u.searchParams.get("with_genres")||"");
+  throw new Error("Cinemeta endpoint is not mapped: "+path);
 }
 
 async function api(path){
   try{
     return await imdbFallback(path);
   }catch(e){
-    console.error("OMDb + IMDb failed",e);
-    toast("OMDb + IMDb failed — check the OMDb API key");
+    console.error("Cinemeta + OMDb failed",e);
+    toast("Metadata service failed — check your connection");
     throw e;
   }
 }
@@ -2850,12 +2887,12 @@ function isIMDbSelected(){
 
 async function changeMetadataSource(value){
   localStorage.setItem("localstream_api_source","imdb");
-  state.apiSource="OMDb + IMDb";
+  state.apiSource="Cinemeta + OMDb";
 
   const select=document.getElementById("metadataSource");
   if(select)select.value="imdb";
 
-  toast("Metadata source: OMDb + IMDb");
+  toast("Metadata source: Cinemeta + OMDb");
   state.catalog.clear();
 
   if(state.page==="home")loadHome();
@@ -5938,14 +5975,14 @@ async function updateApiStatus(){
   if(select)select.value="imdb";
   if(!el)return;
 
-  el.textContent="Checking OMDb + IMDb...";
+  el.textContent="Checking Cinemeta + OMDb...";
 
   try{
     await omdbApi({t:"Inception",plot:"short"});
-    el.textContent="OMDb + IMDb connected";
+    el.textContent="Cinemeta + OMDb connected";
   }catch(e){
     console.error("API STATUS ERROR",e);
-    el.textContent="OMDb + IMDb unavailable";
+    el.textContent="OMDb + IMDb unavailable: "+(e?.message||"network error");
   }
 }
 
